@@ -19,17 +19,22 @@ import java.util.Objects;
  * @author Jamie Mansfield
  * @since 0.1.0
  */
+// todo: is this class even needed?
 public class OverwriteData {
 
     public static OverwriteData fetch(final IBinding binding) {
         for (final IAnnotationBinding annotation : binding.getAnnotations()) {
-            // @Overwrite
             if (Objects.equals(OVERWRITE_CLASS, annotation.getAnnotationType().getBinaryName())) {
-                return new OverwriteData();
+                return from(annotation);
             }
         }
 
         return null;
+    }
+
+    // @Overwrite
+    public static OverwriteData from(final IAnnotationBinding binding) {
+        return new OverwriteData();
     }
 
 }

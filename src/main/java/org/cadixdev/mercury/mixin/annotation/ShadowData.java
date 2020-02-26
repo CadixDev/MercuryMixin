@@ -24,21 +24,25 @@ public class ShadowData {
 
     public static ShadowData fetch(final IBinding binding) {
         for (final IAnnotationBinding annotation : binding.getAnnotations()) {
-            // @Shadow(prefix="shadow$")
             if (Objects.equals(SHADOW_CLASS, annotation.getAnnotationType().getBinaryName())) {
-                String prefix = "shadow$";
-
-                for (final IMemberValuePairBinding pair : annotation.getDeclaredMemberValuePairs()) {
-                    if (Objects.equals("prefix", pair.getName())) {
-                        prefix = (String) pair.getValue();
-                    }
-                }
-
-                return new ShadowData(prefix);
+                return from(annotation);
             }
         }
 
         return null;
+    }
+
+    // @Shadow(prefix="shadow$")
+    public static ShadowData from(final IAnnotationBinding binding) {
+        String prefix = "shadow$";
+
+        for (final IMemberValuePairBinding pair : binding.getDeclaredMemberValuePairs()) {
+            if (Objects.equals("prefix", pair.getName())) {
+                prefix = (String) pair.getValue();
+            }
+        }
+
+        return new ShadowData(prefix);
     }
 
     private final String prefix;

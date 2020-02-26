@@ -24,30 +24,34 @@ public class MixinData {
 
     public static MixinData fetch(final ITypeBinding binding) {
         for (final IAnnotationBinding annotation : binding.getAnnotations()) {
-            // @Mixin(value = {klass.class}, targets = {"private"})
             if (Objects.equals(MIXIN_CLASS, annotation.getAnnotationType().getBinaryName())) {
-                Object[] targetsTemp = {};
-                String[] privateTargets = {};
-
-                for (final IMemberValuePairBinding pair : annotation.getDeclaredMemberValuePairs()) {
-                    if (Objects.equals("value", pair.getName())) {
-                        targetsTemp = (Object[]) pair.getValue();
-                    }
-                    if (Objects.equals("targets", pair.getName())) {
-                        privateTargets = (String[]) pair.getValue();
-                    }
-                }
-
-                final ITypeBinding[] targets = new ITypeBinding[targetsTemp.length];
-                for (int i = 0; i < targetsTemp.length; i++) {
-                    targets[i] = (ITypeBinding) targetsTemp[i];
-                }
-
-                return new MixinData(targets, privateTargets);
+                return from(annotation);
             }
         }
 
         return null;
+    }
+
+    // @Mixin(value = {klass.class}, targets = {"private"})
+    public static MixinData from(final IAnnotationBinding binding) {
+        Object[] targetsTemp = {};
+        String[] privateTargets = {};
+
+        for (final IMemberValuePairBinding pair : binding.getDeclaredMemberValuePairs()) {
+            if (Objects.equals("value", pair.getName())) {
+                targetsTemp = (Object[]) pair.getValue();
+            }
+            if (Objects.equals("targets", pair.getName())) {
+                privateTargets = (String[]) pair.getValue();
+            }
+        }
+
+        final ITypeBinding[] targets = new ITypeBinding[targetsTemp.length];
+        for (int i = 0; i < targetsTemp.length; i++) {
+            targets[i] = (ITypeBinding) targetsTemp[i];
+        }
+
+        return new MixinData(targets, privateTargets);
     }
 
     private final ITypeBinding[] targets;
