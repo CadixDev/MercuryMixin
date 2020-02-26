@@ -20,6 +20,7 @@ import org.cadixdev.lorenz.model.MethodMapping;
 import org.cadixdev.mercury.RewriteContext;
 import org.cadixdev.mercury.analysis.MercuryInheritanceProvider;
 import org.cadixdev.mercury.mixin.annotation.MixinData;
+import org.cadixdev.mercury.mixin.annotation.OverwriteData;
 import org.cadixdev.mercury.mixin.annotation.ShadowData;
 import org.cadixdev.mercury.util.BombeBindings;
 import org.eclipse.jdt.core.dom.ASTVisitor;
@@ -104,6 +105,25 @@ public class MixinRemapperVisitor extends ASTVisitor {
                 final ClassMapping<?, ?> classMapping = this.mappings.getOrCreateClassMapping(declaringClass.getBinaryName());
                 final MethodMapping field = classMapping.getOrCreateMethodMapping(mixinSignature);
                 field.setDeobfuscatedName(usedPrefix ? shadow.prefix(deobfName) : deobfName);
+            }
+        }
+
+        // Get Overwrite info, if it exists
+        final OverwriteData overwrite = OverwriteData.fetch(binding);
+        if (overwrite != null) {
+            target.complete(this.inheritanceProvider, declaringClass);
+
+            final MethodSignature signature = BombeBindings.convertSignature(binding);
+
+            // Get mapping of target method
+            final MethodMapping targetMethod = target.getMethodMapping(signature).orElse(null);
+            if (targetMethod != null) {
+                final String deobfName = targetMethod.getDeobfuscatedName();
+
+                // Create mapping for mixin
+                final ClassMapping<?, ?> classMapping = this.mappings.getOrCreateClassMapping(declaringClass.getBinaryName());
+                final MethodMapping field = classMapping.getOrCreateMethodMapping(signature);
+                field.setDeobfuscatedName(deobfName);
             }
         }
     }
