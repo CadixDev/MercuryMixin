@@ -148,3 +148,7 @@ gradle-app.setting
 **/build/
 
 # End of https://www.gitignore.io/api/java,linux,gradle,intellij+all
+
+### test environment ###
+run/
+src/main/java/org/cadixdev/mercury/mixin/util/Test.java

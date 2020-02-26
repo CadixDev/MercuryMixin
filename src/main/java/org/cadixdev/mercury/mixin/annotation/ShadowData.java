@@ -51,4 +51,15 @@ public class ShadowData {
         return this.prefix;
     }
 
+    public String prefix(final String name) {
+        return this.prefix + name;
+    }
+
+    public String stripPrefix(final String name) {
+        if (name.startsWith(this.prefix)) {
+            return name.substring(this.prefix.length());
+        }
+        return name;
+    }
+
 }
