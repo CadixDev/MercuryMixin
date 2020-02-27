@@ -14,7 +14,7 @@ import java.util.Objects;
 
 public final class MixinRemapper implements SourceRewriter {
 
-    public static SourceRewriter create(MappingSet mappings) {
+    public static SourceRewriter create(final MappingSet mappings) {
         return new MixinRemapper(mappings);
     }
 
