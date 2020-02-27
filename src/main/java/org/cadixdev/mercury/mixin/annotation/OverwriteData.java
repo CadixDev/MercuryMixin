@@ -6,12 +6,7 @@
 
 package org.cadixdev.mercury.mixin.annotation;
 
-import static org.cadixdev.mercury.mixin.util.MixinConstants.OVERWRITE_CLASS;
-
 import org.eclipse.jdt.core.dom.IAnnotationBinding;
-import org.eclipse.jdt.core.dom.IBinding;
-
-import java.util.Objects;
 
 /**
  * A container for data held in the {@code @Overwrite} annotation.
@@ -21,16 +16,6 @@ import java.util.Objects;
  */
 // todo: is this class even needed?
 public class OverwriteData {
-
-    public static OverwriteData fetch(final IBinding binding) {
-        for (final IAnnotationBinding annotation : binding.getAnnotations()) {
-            if (Objects.equals(OVERWRITE_CLASS, annotation.getAnnotationType().getBinaryName())) {
-                return from(annotation);
-            }
-        }
-
-        return null;
-    }
 
     // @Overwrite
     public static OverwriteData from(final IAnnotationBinding binding) {

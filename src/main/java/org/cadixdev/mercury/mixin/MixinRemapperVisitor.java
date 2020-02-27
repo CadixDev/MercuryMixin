@@ -6,6 +6,7 @@
 
 package org.cadixdev.mercury.mixin;
 
+import static org.cadixdev.mercury.mixin.util.MixinConstants.ACCESSOR_CLASS;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.OVERWRITE_CLASS;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.SHADOW_CLASS;
 import static org.cadixdev.mercury.util.BombeBindings.convertType;
@@ -21,6 +22,7 @@ import org.cadixdev.lorenz.model.FieldMapping;
 import org.cadixdev.lorenz.model.MethodMapping;
 import org.cadixdev.mercury.RewriteContext;
 import org.cadixdev.mercury.analysis.MercuryInheritanceProvider;
+import org.cadixdev.mercury.mixin.annotation.AccessorName;
 import org.cadixdev.mercury.mixin.annotation.MixinData;
 import org.cadixdev.mercury.mixin.annotation.OverwriteData;
 import org.cadixdev.mercury.mixin.annotation.ShadowData;
@@ -135,6 +137,45 @@ public class MixinRemapperVisitor extends ASTVisitor {
                     final ClassMapping<?, ?> classMapping = this.mappings.getOrCreateClassMapping(declaringClass.getBinaryName());
                     final MethodMapping method = classMapping.getOrCreateMethodMapping(signature);
                     method.setDeobfuscatedName(deobfName);
+                }
+            }
+
+            // @Accessor
+            if (Objects.equals(ACCESSOR_CLASS, annotationType)) {
+                final AccessorName name = AccessorName.of(binding.getName());
+
+                final MethodSignature mixinSignature = BombeBindings.convertSignature(binding);
+
+                // Getters
+                if (Objects.equals("get", name.getPrefix()) || Objects.equals("is", name.getPrefix())) {
+                    final FieldSignature targetSignature = new FieldSignature(name.getName(), (FieldType) mixinSignature.getDescriptor().getReturnType());
+
+                    // Get mapping of target field
+                    final FieldMapping targetField = target.computeFieldMapping(targetSignature).orElse(null);
+                    if (targetField != null) {
+                        final String deobfName = targetField.getDeobfuscatedName();
+
+                        // Create mapping for mixin
+                        final ClassMapping<?, ?> classMapping = this.mappings.getOrCreateClassMapping(declaringClass.getBinaryName());
+                        final MethodMapping method = classMapping.getOrCreateMethodMapping(mixinSignature);
+                        method.setDeobfuscatedName(name.prefix(deobfName));
+                    }
+                }
+
+                // Setters
+                if (Objects.equals("set", name.getPrefix())) {
+                    final FieldSignature targetSignature = new FieldSignature(name.getName(), mixinSignature.getDescriptor().getParamTypes().get(0));
+
+                    // Get mapping of target field
+                    final FieldMapping targetField = target.computeFieldMapping(targetSignature).orElse(null);
+                    if (targetField != null) {
+                        final String deobfName = targetField.getDeobfuscatedName();
+
+                        // Create mapping for mixin
+                        final ClassMapping<?, ?> classMapping = this.mappings.getOrCreateClassMapping(declaringClass.getBinaryName());
+                        final MethodMapping method = classMapping.getOrCreateMethodMapping(mixinSignature);
+                        method.setDeobfuscatedName(name.prefix(deobfName));
+                    }
                 }
             }
         }

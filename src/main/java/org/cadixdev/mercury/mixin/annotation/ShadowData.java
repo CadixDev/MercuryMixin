@@ -6,10 +6,7 @@
 
 package org.cadixdev.mercury.mixin.annotation;
 
-import static org.cadixdev.mercury.mixin.util.MixinConstants.SHADOW_CLASS;
-
 import org.eclipse.jdt.core.dom.IAnnotationBinding;
-import org.eclipse.jdt.core.dom.IBinding;
 import org.eclipse.jdt.core.dom.IMemberValuePairBinding;
 
 import java.util.Objects;
@@ -21,16 +18,6 @@ import java.util.Objects;
  * @since 0.1.0
  */
 public class ShadowData {
-
-    public static ShadowData fetch(final IBinding binding) {
-        for (final IAnnotationBinding annotation : binding.getAnnotations()) {
-            if (Objects.equals(SHADOW_CLASS, annotation.getAnnotationType().getBinaryName())) {
-                return from(annotation);
-            }
-        }
-
-        return null;
-    }
 
     // @Shadow(prefix="shadow$")
     public static ShadowData from(final IAnnotationBinding binding) {
