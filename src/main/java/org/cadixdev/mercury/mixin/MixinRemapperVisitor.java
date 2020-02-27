@@ -31,6 +31,7 @@ import org.cadixdev.mercury.mixin.annotation.ShadowData;
 import org.cadixdev.mercury.util.BombeBindings;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.ArrayInitializer;
 import org.eclipse.jdt.core.dom.IAnnotationBinding;
 import org.eclipse.jdt.core.dom.IBinding;
 import org.eclipse.jdt.core.dom.IMethodBinding;
@@ -230,31 +231,30 @@ public class MixinRemapperVisitor extends ASTVisitor {
                     method[j] = deobf;
                 }
 
+                // todo: can we get the node without using a rewrite?
                 final ListRewrite annotations = this.context.createASTRewrite().getListRewrite(node, MethodDeclaration.MODIFIERS2_PROPERTY);
-
                 final NormalAnnotation originalAnnotation = (NormalAnnotation) annotations.getOriginalList().get(i);
-                final NormalAnnotation newAnnotation = ast.newNormalAnnotation();
-                final ListRewrite rewrite = this.context.createASTRewrite().getListRewrite(newAnnotation, NormalAnnotation.VALUES_PROPERTY);
-                newAnnotation.setTypeName(ast.newSimpleName("Inject"));
 
-                final MemberValuePair methodPair = ast.newMemberValuePair();
-                methodPair.setName(ast.newSimpleName("method"));
-                if (method.length == 1) {
-                    final StringLiteral value = ast.newStringLiteral();
-                    value.setLiteralValue(method[0]);
-                    methodPair.setValue(value);
-                }
-                else {
-                    // todo: implement
-                }
-                rewrite.insertFirst(methodPair, null);
-                for (final Object value : originalAnnotation.values()) {
-                    final MemberValuePair pair = (MemberValuePair) value;
-                    if (Objects.equals("method", pair.getName().getIdentifier())) continue;
-                    rewrite.insertLast(pair, null);
-                }
+                for (final Object raw : originalAnnotation.values()) {
+                    final MemberValuePair pair = (MemberValuePair) raw;
 
-                annotations.replace(originalAnnotation, newAnnotation, null);
+                    // Remap the method pair
+                    if (Objects.equals("method", pair.getName().getIdentifier())) {
+                        if (pair.getValue() instanceof StringLiteral) {
+                            final StringLiteral original = (StringLiteral) pair.getValue();
+                            replaceStringLiteral(ast, this.context, original, method[0]);
+                        }
+                        else {
+                            final ArrayInitializer array = (ArrayInitializer) pair.getValue();
+                            for (int j = 0; j < array.expressions().size(); j++) {
+                                final StringLiteral original = (StringLiteral) array.expressions().get(j);
+                                replaceStringLiteral(ast, this.context, original, method[j]);
+                            }
+                        }
+                    }
+
+                    // todo: handle @At remapping
+                }
             }
         }
 
@@ -279,6 +279,12 @@ public class MixinRemapperVisitor extends ASTVisitor {
             visit(node, binding);
         }
         return false;
+    }
+
+    private static void replaceStringLiteral(final AST ast, final RewriteContext context, final StringLiteral original, final String replacement) {
+        final StringLiteral replacementLiteral = ast.newStringLiteral();
+        replacementLiteral.setLiteralValue(replacement);
+        context.createASTRewrite().replace(original, replacementLiteral, null);
     }
 
     private static FieldSignature convertSignature(final String name, final ITypeBinding type) {
