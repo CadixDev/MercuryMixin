@@ -9,7 +9,7 @@ package org.cadixdev.mercury.mixin.util;
 public final class MixinConstants {
 
     public static final String MIXIN_PACKAGE = "org.spongepowered.asm.mixin";
-    public static final String INJECTOR_PACKAGE = MIXIN_PACKAGE + ".injector";
+    public static final String INJECTOR_PACKAGE = MIXIN_PACKAGE + ".injection";
     public static final String GEN_PACKAGE = MIXIN_PACKAGE + ".gen";
 
     public static final String MIXIN_CLASS = MIXIN_PACKAGE + ".Mixin";

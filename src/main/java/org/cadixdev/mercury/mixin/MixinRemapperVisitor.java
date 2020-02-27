@@ -7,6 +7,7 @@
 package org.cadixdev.mercury.mixin;
 
 import static org.cadixdev.mercury.mixin.util.MixinConstants.ACCESSOR_CLASS;
+import static org.cadixdev.mercury.mixin.util.MixinConstants.INJECT_CLASS;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.OVERWRITE_CLASS;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.SHADOW_CLASS;
 import static org.cadixdev.mercury.util.BombeBindings.convertType;
@@ -23,17 +24,24 @@ import org.cadixdev.lorenz.model.MethodMapping;
 import org.cadixdev.mercury.RewriteContext;
 import org.cadixdev.mercury.analysis.MercuryInheritanceProvider;
 import org.cadixdev.mercury.mixin.annotation.AccessorName;
+import org.cadixdev.mercury.mixin.annotation.InjectData;
 import org.cadixdev.mercury.mixin.annotation.MixinData;
 import org.cadixdev.mercury.mixin.annotation.OverwriteData;
 import org.cadixdev.mercury.mixin.annotation.ShadowData;
 import org.cadixdev.mercury.util.BombeBindings;
+import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.IAnnotationBinding;
 import org.eclipse.jdt.core.dom.IBinding;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
+import org.eclipse.jdt.core.dom.MemberValuePair;
+import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.NormalAnnotation;
 import org.eclipse.jdt.core.dom.SimpleName;
+import org.eclipse.jdt.core.dom.StringLiteral;
+import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -95,7 +103,8 @@ public class MixinRemapperVisitor extends ASTVisitor {
         if (mixin == null) return;
 
         // todo: support multiple targets properly
-        final ClassMapping<?, ?> target = this.mappings.computeClassMapping(mixin.getTargets()[0].getBinaryName()).orElse(null);
+        final ITypeBinding targetClass = mixin.getTargets()[0];
+        final ClassMapping<?, ?> target = this.mappings.computeClassMapping(targetClass.getBinaryName()).orElse(null);
         if (target == null) return;
         target.complete(this.inheritanceProvider, declaringClass);
 
@@ -179,6 +188,77 @@ public class MixinRemapperVisitor extends ASTVisitor {
                 }
             }
         }
+    }
+
+    @Override
+    public boolean visit(final MethodDeclaration node) {
+        final AST ast = this.context.getCompilationUnit().getAST();
+        final IMethodBinding binding = node.resolveBinding();
+
+        final ITypeBinding declaringClass = binding.getDeclaringClass();
+        final MixinData mixin = MixinData.fetch(declaringClass);
+        if (mixin == null) return true;
+
+        // todo: support multiple targets properly
+        final ITypeBinding targetClass = mixin.getTargets()[0];
+        final ClassMapping<?, ?> target = this.mappings.computeClassMapping(targetClass.getBinaryName()).orElse(null);
+        if (target == null) return true;
+        target.complete(this.inheritanceProvider, declaringClass);
+
+        for (int i = 0; i < binding.getAnnotations().length; i++) {
+            final IAnnotationBinding annotation = binding.getAnnotations()[i];
+            final String annotationType = annotation.getAnnotationType().getBinaryName();
+
+            // @Inject
+            if (Objects.equals(INJECT_CLASS, annotationType)) {
+                final InjectData inject = InjectData.from(annotation);
+
+                // Find target method(s?)
+                // todo: implement selectors
+                final String[] method = new String[inject.getMethod().length];
+                for (int j = 0; j < inject.getMethod().length; j++) {
+                    final String targetMethod = inject.getMethod()[j];
+                    String deobf = targetMethod;
+
+                    for (final MethodMapping mapping : target.getMethodMappings()) {
+                        if (Objects.equals(targetMethod, mapping.getObfuscatedName())) {
+                            deobf = mapping.getDeobfuscatedName();
+                            break;
+                        }
+                    }
+
+                    method[j] = deobf;
+                }
+
+                final ListRewrite annotations = this.context.createASTRewrite().getListRewrite(node, MethodDeclaration.MODIFIERS2_PROPERTY);
+
+                final NormalAnnotation originalAnnotation = (NormalAnnotation) annotations.getOriginalList().get(i);
+                final NormalAnnotation newAnnotation = ast.newNormalAnnotation();
+                final ListRewrite rewrite = this.context.createASTRewrite().getListRewrite(newAnnotation, NormalAnnotation.VALUES_PROPERTY);
+                newAnnotation.setTypeName(ast.newSimpleName("Inject"));
+
+                final MemberValuePair methodPair = ast.newMemberValuePair();
+                methodPair.setName(ast.newSimpleName("method"));
+                if (method.length == 1) {
+                    final StringLiteral value = ast.newStringLiteral();
+                    value.setLiteralValue(method[0]);
+                    methodPair.setValue(value);
+                }
+                else {
+                    // todo: implement
+                }
+                rewrite.insertFirst(methodPair, null);
+                for (final Object value : originalAnnotation.values()) {
+                    final MemberValuePair pair = (MemberValuePair) value;
+                    if (Objects.equals("method", pair.getName().getIdentifier())) continue;
+                    rewrite.insertLast(pair, null);
+                }
+
+                annotations.replace(originalAnnotation, newAnnotation, null);
+            }
+        }
+
+        return true;
     }
 
     private void visit(final SimpleName node, final IBinding binding) {
