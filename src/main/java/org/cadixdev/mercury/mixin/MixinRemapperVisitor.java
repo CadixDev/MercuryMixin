@@ -99,20 +99,23 @@ public class MixinRemapperVisitor extends ASTVisitor {
         }
     }
 
-    private void remapMethod(final SimpleName node, final IMethodBinding binding) {
-        if (binding.isConstructor()) return;
+    @Override
+    public boolean visit(final MethodDeclaration node) {
+        final AST ast = this.context.getCompilationUnit().getAST();
+        final IMethodBinding binding = node.resolveBinding();
 
         final ITypeBinding declaringClass = binding.getDeclaringClass();
         final MixinData mixin = MixinData.fetch(declaringClass);
-        if (mixin == null) return;
+        if (mixin == null) return true;
 
         // todo: support multiple targets properly
         final ITypeBinding targetClass = mixin.getTargets()[0];
         final ClassMapping<?, ?> target = this.mappings.computeClassMapping(targetClass.getBinaryName()).orElse(null);
-        if (target == null) return;
+        if (target == null) return true;
         target.complete(this.inheritanceProvider, declaringClass);
 
-        for (final IAnnotationBinding annotation : binding.getAnnotations()) {
+        for (int i = 0; i < binding.getAnnotations().length; i++) {
+            final IAnnotationBinding annotation = binding.getAnnotations()[i];
             final String annotationType = annotation.getAnnotationType().getBinaryName();
 
             // @Shadow
@@ -147,27 +150,6 @@ public class MixinRemapperVisitor extends ASTVisitor {
                         targetMethod
                 );
             }
-        }
-    }
-
-    @Override
-    public boolean visit(final MethodDeclaration node) {
-        final AST ast = this.context.getCompilationUnit().getAST();
-        final IMethodBinding binding = node.resolveBinding();
-
-        final ITypeBinding declaringClass = binding.getDeclaringClass();
-        final MixinData mixin = MixinData.fetch(declaringClass);
-        if (mixin == null) return true;
-
-        // todo: support multiple targets properly
-        final ITypeBinding targetClass = mixin.getTargets()[0];
-        final ClassMapping<?, ?> target = this.mappings.computeClassMapping(targetClass.getBinaryName()).orElse(null);
-        if (target == null) return true;
-        target.complete(this.inheritanceProvider, declaringClass);
-
-        for (int i = 0; i < binding.getAnnotations().length; i++) {
-            final IAnnotationBinding annotation = binding.getAnnotations()[i];
-            final String annotationType = annotation.getAnnotationType().getBinaryName();
 
             // @Accessor
             if (Objects.equals(ACCESSOR_CLASS, annotationType)) {
@@ -283,9 +265,6 @@ public class MixinRemapperVisitor extends ASTVisitor {
         switch (binding.getKind()) {
             case IBinding.VARIABLE:
                 remapField(node, ((IVariableBinding) binding).getVariableDeclaration());
-                break;
-            case IBinding.METHOD:
-                remapMethod(node, ((IMethodBinding) binding).getMethodDeclaration());
                 break;
         }
     }
