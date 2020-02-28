@@ -15,6 +15,7 @@ import static org.cadixdev.mercury.util.BombeBindings.convertType;
 import org.cadixdev.bombe.analysis.InheritanceProvider;
 import org.cadixdev.bombe.type.FieldType;
 import org.cadixdev.bombe.type.MethodDescriptor;
+import org.cadixdev.bombe.type.VoidType;
 import org.cadixdev.bombe.type.signature.FieldSignature;
 import org.cadixdev.bombe.type.signature.MethodSignature;
 import org.cadixdev.lorenz.MappingSet;
@@ -24,6 +25,7 @@ import org.cadixdev.lorenz.model.Mapping;
 import org.cadixdev.lorenz.model.MethodMapping;
 import org.cadixdev.mercury.RewriteContext;
 import org.cadixdev.mercury.analysis.MercuryInheritanceProvider;
+import org.cadixdev.mercury.mixin.annotation.AccessorData;
 import org.cadixdev.mercury.mixin.annotation.AccessorName;
 import org.cadixdev.mercury.mixin.annotation.InjectData;
 import org.cadixdev.mercury.mixin.annotation.MixinData;
@@ -32,6 +34,7 @@ import org.cadixdev.mercury.mixin.annotation.ShadowData;
 import org.cadixdev.mercury.util.BombeBindings;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.Annotation;
 import org.eclipse.jdt.core.dom.ArrayInitializer;
 import org.eclipse.jdt.core.dom.IAnnotationBinding;
 import org.eclipse.jdt.core.dom.IBinding;
@@ -42,8 +45,8 @@ import org.eclipse.jdt.core.dom.MemberValuePair;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.NormalAnnotation;
 import org.eclipse.jdt.core.dom.SimpleName;
+import org.eclipse.jdt.core.dom.SingleMemberAnnotation;
 import org.eclipse.jdt.core.dom.StringLiteral;
-import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -144,33 +147,6 @@ public class MixinRemapperVisitor extends ASTVisitor {
                         targetMethod
                 );
             }
-
-            // @Accessor
-            if (Objects.equals(ACCESSOR_CLASS, annotationType)) {
-                final AccessorName name = AccessorName.of(binding.getName());
-
-                final MethodSignature mixinSignature = BombeBindings.convertSignature(binding);
-
-                final boolean isGetter = "get".equals(name.getPrefix()) || "is".equals(name.getPrefix());
-                final boolean isSetter = "set".equals(name.getPrefix());
-                if (isGetter || isSetter) {
-                    final FieldSignature targetSignature = new FieldSignature(name.getName(), isGetter ?
-                            // For getters, use the return type
-                            (FieldType) mixinSignature.getDescriptor().getReturnType() :
-                            // For setters, use the first argument in the method
-                            mixinSignature.getDescriptor().getParamTypes().get(0)
-                    );
-
-                    // Get mapping of target field
-                    final FieldMapping targetField = target.computeFieldMapping(targetSignature).orElse(null);
-                    remapMixinMethod(
-                            declaringClass,
-                            mixinSignature,
-                            targetField,
-                            name::prefix
-                    );
-                }
-            }
         }
     }
 
@@ -193,6 +169,67 @@ public class MixinRemapperVisitor extends ASTVisitor {
             final IAnnotationBinding annotation = binding.getAnnotations()[i];
             final String annotationType = annotation.getAnnotationType().getBinaryName();
 
+            // @Accessor
+            if (Objects.equals(ACCESSOR_CLASS, annotationType)) {
+                final AccessorName name = AccessorName.of(binding.getName());
+                final AccessorData accessor = AccessorData.from(annotation);
+                final MethodSignature mixinSignature = BombeBindings.convertSignature(binding);
+
+                final boolean isGetter = mixinSignature.getDescriptor().getParamTypes().size() == 0 &&
+                        !Objects.equals(VoidType.INSTANCE, mixinSignature.getDescriptor().getReturnType());
+                final boolean isSetter = mixinSignature.getDescriptor().getParamTypes().size() == 1 &&
+                        Objects.equals(VoidType.INSTANCE, mixinSignature.getDescriptor().getReturnType());
+
+                // Inflect target from method name, if not set in annotation
+                final boolean inflect = accessor.getTarget().isEmpty();
+                final String targetName = inflect ? name.getName() : accessor.getTarget();
+                final FieldSignature targetSignature = new FieldSignature(targetName, isGetter ?
+                        // For getters, use the return type
+                        (FieldType) mixinSignature.getDescriptor().getReturnType() :
+                        // For setters, use the first argument in the method
+                        mixinSignature.getDescriptor().getParamTypes().get(0)
+                );
+
+                // Get mapping of target field
+                final FieldMapping targetField = target.computeFieldMapping(targetSignature).orElse(null);
+                if (targetField == null) continue;
+
+                // Inflect target name from name of method
+                if (inflect) {
+                    remapMixinMethod(
+                            declaringClass,
+                            mixinSignature,
+                            targetField,
+                            name::prefix
+                    );
+                }
+                else {
+                    final Annotation rawAnnotation = (Annotation) node.modifiers().get(i);
+
+                    if (rawAnnotation.isNormalAnnotation()) {
+                        final NormalAnnotation annotationNode = (NormalAnnotation) rawAnnotation;
+
+                        for (final Object raw : annotationNode.values()) {
+                            final MemberValuePair pair = (MemberValuePair) raw;
+
+                            // Remap the method pair
+                            if (Objects.equals("value", pair.getName().getIdentifier())) {
+                                final StringLiteral original = (StringLiteral) pair.getValue();
+                                replaceStringLiteral(ast, this.context, original, targetField.getDeobfuscatedName());
+                            }
+                        }
+                    }
+                    else if (rawAnnotation.isSingleMemberAnnotation()) {
+                        final SingleMemberAnnotation annotationNode = (SingleMemberAnnotation) rawAnnotation;
+                        final StringLiteral original = (StringLiteral) annotationNode.getValue();
+                        replaceStringLiteral(ast, this.context, original, targetField.getDeobfuscatedName());
+                    }
+                    else {
+                        throw new RuntimeException("Unexpected annotation: " + rawAnnotation.getClass().getName());
+                    }
+                }
+            }
+
             // @Inject
             if (Objects.equals(INJECT_CLASS, annotationType)) {
                 final InjectData inject = InjectData.from(annotation);
@@ -214,9 +251,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
                     method[j] = deobf;
                 }
 
-                // todo: can we get the node without using a rewrite?
-                final ListRewrite annotations = this.context.createASTRewrite().getListRewrite(node, MethodDeclaration.MODIFIERS2_PROPERTY);
-                final NormalAnnotation originalAnnotation = (NormalAnnotation) annotations.getOriginalList().get(i);
+                final NormalAnnotation originalAnnotation = (NormalAnnotation) node.modifiers().get(i);
 
                 for (final Object raw : originalAnnotation.values()) {
                     final MemberValuePair pair = (MemberValuePair) raw;
