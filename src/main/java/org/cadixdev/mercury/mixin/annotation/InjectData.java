@@ -6,6 +6,7 @@
 
 package org.cadixdev.mercury.mixin.annotation;
 
+import org.cadixdev.bombe.type.signature.MethodSignature;
 import org.eclipse.jdt.core.dom.IAnnotationBinding;
 import org.eclipse.jdt.core.dom.IMemberValuePairBinding;
 
@@ -21,30 +22,30 @@ public class InjectData {
 
     // @Inject(method={"example"}, at=@At(...))
     public static InjectData from(final IAnnotationBinding binding) {
-        String[] method = {};
+        MethodSignature[] methodSignatures = {};
 
         for (final IMemberValuePairBinding pair : binding.getDeclaredMemberValuePairs()) {
             if (Objects.equals("method", pair.getName())) {
                 final Object[] raw = (Object[]) pair.getValue();
 
-                method = new String[raw.length];
+                methodSignatures = new MethodSignature[raw.length];
                 for (int i = 0; i < raw.length; i++) {
-                    method[i] = (String) raw[i];
+                    methodSignatures[i] = MethodSignature.of((String) raw[i]);
                 }
             }
         }
 
-        return new InjectData(method);
+        return new InjectData(methodSignatures);
     }
 
-    private final String[] method;
+    private final MethodSignature[] methodSignatures;
 
-    public InjectData(final String[] method) {
-        this.method = method;
+    public InjectData(final MethodSignature[] methodSignatures) {
+        this.methodSignatures = methodSignatures;
     }
 
-    public String[] getMethod() {
-        return this.method;
+    public MethodSignature[] getMethodSignatures() {
+        return this.methodSignatures;
     }
 
 }

@@ -18,6 +18,7 @@ public final class MixinConstants {
     public static final String FINAL_CLASS = MIXIN_PACKAGE + ".Final";
     public static final String MUTABLE_CLASS = MIXIN_PACKAGE + ".Mutable";
     public static final String INJECT_CLASS = INJECTOR_PACKAGE + ".Inject";
+    public static final String AT_CLASS = INJECT_CLASS + ".At";
     public static final String ACCESSOR_CLASS = GEN_PACKAGE + ".Accessor";
 
     private MixinConstants() {

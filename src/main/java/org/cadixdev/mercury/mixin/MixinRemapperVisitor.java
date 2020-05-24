@@ -201,14 +201,15 @@ public class MixinRemapperVisitor extends ASTVisitor {
 
                 // Find target method(s?)
                 // todo: implement selectors
-                final String[] method = new String[inject.getMethod().length];
-                for (int j = 0; j < inject.getMethod().length; j++) {
-                    final String targetMethod = inject.getMethod()[j];
-                    String deobf = targetMethod;
+                final String[] method = new String[inject.getMethodSignatures().length];
+                for (int j = 0; j < inject.getMethodSignatures().length; j++) {
+                    final MethodSignature targetMethod = inject.getMethodSignatures()[j];
+                    String deobf = targetMethod.getName() + targetMethod.getDescriptor().toString();
 
                     for (final MethodMapping mapping : target.getMethodMappings()) {
-                        if (Objects.equals(targetMethod, mapping.getObfuscatedName())) {
-                            deobf = mapping.getDeobfuscatedName();
+                        if (Objects.equals(targetMethod.getName(), mapping.getObfuscatedName())) {
+                            MethodSignature deobfuscatedSignature = mapping.getDeobfuscatedSignature();
+                            deobf = deobfuscatedSignature.getName() + deobfuscatedSignature.getDescriptor().toString();
                             break;
                         }
                     }

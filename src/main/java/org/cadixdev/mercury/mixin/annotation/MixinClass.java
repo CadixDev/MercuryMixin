@@ -44,7 +44,11 @@ public class MixinClass {
                         targetsTemp = (Object[]) pair.getValue();
                     }
                     if (Objects.equals("targets", pair.getName())) {
-                        privateTargets = (String[]) pair.getValue();
+                        Object[] privateTargetObjects = (Object[]) pair.getValue();
+                        privateTargets = new String[privateTargetObjects.length];
+                        for (int i = 0; i < privateTargetObjects.length; i++) {
+                            privateTargets[i] = (String) privateTargetObjects[i];
+                        }
                     }
                 }
             }
