@@ -27,6 +27,7 @@ import org.cadixdev.mercury.analysis.MercuryInheritanceProvider;
 import org.cadixdev.mercury.mixin.annotation.AccessorData;
 import org.cadixdev.mercury.mixin.annotation.AccessorName;
 import org.cadixdev.mercury.mixin.annotation.InjectData;
+import org.cadixdev.mercury.mixin.annotation.MethodTarget;
 import org.cadixdev.mercury.mixin.annotation.MixinClass;
 import org.cadixdev.mercury.mixin.annotation.ShadowData;
 import org.cadixdev.mercury.util.BombeBindings;
@@ -201,13 +202,19 @@ public class MixinRemapperVisitor extends ASTVisitor {
 
                 // Find target method(s?)
                 // todo: implement selectors
-                final String[] method = new String[inject.getMethodSignatures().length];
-                for (int j = 0; j < inject.getMethodSignatures().length; j++) {
-                    final MethodSignature targetMethod = inject.getMethodSignatures()[j];
-                    String deobf = targetMethod.getName() + targetMethod.getDescriptor().toString();
+                final String[] method = new String[inject.getMethodTargets().length];
+                for (int j = 0; j < inject.getMethodTargets().length; j++) {
+                    final MethodTarget targetMethod = inject.getMethodTargets()[j];
+                    String targetMethodName = targetMethod.getMethodName();
+                    String deobf = targetMethodName + targetMethod.getMethodDescriptor()
+                            .map(MethodDescriptor::toString)
+                            .orElse("");
 
                     for (final MethodMapping mapping : target.getMethodMappings()) {
-                        if (Objects.equals(targetMethod.getName(), mapping.getObfuscatedName())) {
+                        if (Objects.equals(targetMethodName, mapping.getObfuscatedName()) &&
+                                targetMethod.getMethodDescriptor()
+                                        .map(d -> d.equals(mapping.getDescriptor()))
+                                        .orElse(true)) {
                             MethodSignature deobfuscatedSignature = mapping.getDeobfuscatedSignature();
                             deobf = deobfuscatedSignature.getName() + deobfuscatedSignature.getDescriptor().toString();
                             break;
