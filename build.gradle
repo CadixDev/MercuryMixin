@@ -19,6 +19,12 @@ repositories {
 
 dependencies {
     compile "org.cadixdev:mercury:$mercuryVersion"
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.6.2'
+}
+
+test {
+    useJUnitPlatform()
 }
 
 processResources {
