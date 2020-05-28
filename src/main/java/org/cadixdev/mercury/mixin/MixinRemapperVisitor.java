@@ -216,7 +216,11 @@ public class MixinRemapperVisitor extends ASTVisitor {
                                         .map(d -> d.equals(mapping.getDescriptor()))
                                         .orElse(true)) {
                             MethodSignature deobfuscatedSignature = mapping.getDeobfuscatedSignature();
-                            deobf = deobfuscatedSignature.getName() + deobfuscatedSignature.getDescriptor().toString();
+                            if (targetMethod.getMethodDescriptor().isPresent()) {
+                                deobf = deobfuscatedSignature.getName() + deobfuscatedSignature.getDescriptor().toString();
+                            } else {
+                                deobf = deobfuscatedSignature.getName();
+                            }
                             break;
                         }
                     }

@@ -38,8 +38,13 @@ public abstract class TestTargetMixin {
         System.out.println("Hello, world!");
     }
 
-    @Inject(method = {"start()V", "jjjj"}, at = @At("HEAD"))
+    @Inject(method = {"start", "jjjj"}, at = @At("HEAD"))
     public void onStart(final CallbackInfo callbackInfo) {
+        System.out.println("Hello, world!");
+    }
+
+    @Inject(method = {"start()V", "jjjj"}, at = @At("HEAD"))
+    public void onStart2(final CallbackInfo callbackInfo) {
         System.out.println("Hello, world!");
     }
 
