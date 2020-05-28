@@ -1,6 +1,6 @@
-name: Publish to Central
+name: Build and Publish
 
-# Only run publish for master!
+# Only run publish for master
 on:
   push:
     branches: [ master ]
