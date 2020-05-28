@@ -288,28 +288,34 @@ public class MixinRemapperVisitor extends ASTVisitor {
             // check for the target
             if (Objects.equals("target", atRawPair.getName().getIdentifier())) {
                 // make sure everything is present
-                if (atDatum.getClassName().isPresent() && atDatum.getTarget().isPresent()) {
+                if (atDatum.getClassName().isPresent()) {
                     String className = atDatum.getClassName().get();
-                    MethodTarget atTarget = atDatum.getTarget().get();
                     final StringLiteral originalTarget = (StringLiteral) atRawPair.getValue();
 
                     // get the class mapping of the class that owns the target we're remapping
                     final ClassMapping<?, ?> atTargetMappings = this.mappings.computeClassMapping(className).orElse(null);
                     if (atTargetMappings == null) continue;
                     atTargetMappings.complete(this.inheritanceProvider, declaringClass);
+                    String deobfTargetClass = atTargetMappings.getFullDeobfuscatedName().replace('.', '/');
 
-                    Optional<MethodDescriptor> methodDescriptor = atTarget.getMethodDescriptor();
-                    // the method descriptor should always be present in an @At's target
-                    if (methodDescriptor.isPresent()) {
-                        MethodMapping methodMapping = atTargetMappings.getMethodMapping(atTarget.getMethodName(), methodDescriptor.get().toString()).orElse(null);
-                        if (methodMapping == null) continue;
+                    if (atDatum.getTarget().isPresent()) {
+                        // class name + method signature
+                        MethodTarget atTarget = atDatum.getTarget().get();
+                        Optional<MethodDescriptor> methodDescriptor = atTarget.getMethodDescriptor();
+                        // the method descriptor should always be present in an @At's target
+                        if (methodDescriptor.isPresent()) {
+                            MethodMapping methodMapping = atTargetMappings.getMethodMapping(atTarget.getMethodName(), methodDescriptor.get().toString()).orElse(null);
+                            if (methodMapping == null) continue;
 
-                        // replace the original literal with class + method + method sig
-                        String deobfTargetClass = atTargetMappings.getFullDeobfuscatedName();
-                        MethodSignature deobfuscatedSignature = methodMapping.getDeobfuscatedSignature();
-                        String deobfTargetSig = deobfuscatedSignature.getName() + deobfuscatedSignature.getDescriptor().toString();
-                        String deobfTarget = "L" + deobfTargetClass.replace('.', '/') + ";" + deobfTargetSig;
-                        replaceStringLiteral(ast, this.context, originalTarget, deobfTarget);
+                            // replace the original literal with class + method + method sig
+                            MethodSignature deobfuscatedSignature = methodMapping.getDeobfuscatedSignature();
+                            String deobfTargetSig = deobfuscatedSignature.getName() + deobfuscatedSignature.getDescriptor().toString();
+                            String deobfTarget = "L" + deobfTargetClass + ";" + deobfTargetSig;
+                            replaceStringLiteral(ast, this.context, originalTarget, deobfTarget);
+                        }
+                    } else {
+                        // it's just the class name
+                        replaceStringLiteral(ast, this.context, originalTarget, deobfTargetClass);
                     }
                 }
             }

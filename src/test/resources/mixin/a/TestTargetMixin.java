@@ -62,4 +62,9 @@ public abstract class TestTargetMixin {
         System.out.println("Hello from injection!");
     }
 
+    @Inject(method = "hhj", at = @At(value = "NEW", target = "hj"))
+    public void injectNew(final CallbackInfo callbackInfo) {
+        System.out.println("Hello from new injection!");
+    }
+
 }

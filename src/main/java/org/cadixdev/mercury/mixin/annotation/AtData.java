@@ -25,8 +25,13 @@ public class AtData {
             } else if (Objects.equals("target", pair.getName())) {
                 String combined = (String) pair.getValue();
                 int semiIndex = combined.indexOf(';');
-                className = combined.substring(1, semiIndex);
-                target = MethodTarget.of(combined.substring(semiIndex + 1));
+                if (semiIndex >= 0) {
+                    className = combined.substring(1, semiIndex);
+                    target = MethodTarget.of(combined.substring(semiIndex + 1));
+                } else {
+                    // it's just the class name, probably a NEW
+                    className = combined;
+                }
             }
         }
 
