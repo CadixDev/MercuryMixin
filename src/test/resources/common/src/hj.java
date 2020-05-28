@@ -26,6 +26,8 @@ public class hj {
     }
 
     public void hhj() {
+        int age = julp();
+        gyhu();
     }
 
 }

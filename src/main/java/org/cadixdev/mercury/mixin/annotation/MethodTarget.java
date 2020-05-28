@@ -7,7 +7,6 @@
 package org.cadixdev.mercury.mixin.annotation;
 
 import org.cadixdev.bombe.type.MethodDescriptor;
-import org.cadixdev.bombe.type.signature.MethodSignature;
 
 import java.util.Optional;
 
@@ -21,17 +20,17 @@ public class MethodTarget {
     private final String methodName;
     private final MethodDescriptor methodDescriptor;
 
-    public MethodTarget(String methodName) {
+    public MethodTarget(final String methodName) {
         this.methodName = methodName;
         this.methodDescriptor = null;
     }
 
-    public MethodTarget(String methodName, MethodDescriptor methodDescriptor) {
+    public MethodTarget(final String methodName, final MethodDescriptor methodDescriptor) {
         this.methodName = methodName;
         this.methodDescriptor = methodDescriptor;
     }
 
-    public static MethodTarget of(String target) {
+    public static MethodTarget of(final String target) {
         int index = target.indexOf('(');
         if (index >= 0) {
             return new MethodTarget(target.substring(0, index), MethodDescriptor.of(target.substring(index)));
@@ -44,7 +43,15 @@ public class MethodTarget {
     }
 
     public Optional<MethodDescriptor> getMethodDescriptor() {
-        return Optional.ofNullable(methodDescriptor);
+        return Optional.ofNullable(this.methodDescriptor);
+    }
+
+    @Override
+    public String toString() {
+        return "MethodTarget{" +
+                "methodName='" + this.methodName + '\'' +
+                ", methodDescriptor=" + this.methodDescriptor +
+                '}';
     }
 
 }

@@ -38,9 +38,33 @@ public abstract class TestTargetMixin {
         System.out.println("Hello, world!");
     }
 
-    @Inject(method = {"start()V", "jjjj"}, at = @At("HEAD"))
+    @Inject(method = {"start", "jjjj"}, at = @At("HEAD"))
     public void onStart(final CallbackInfo callbackInfo) {
         System.out.println("Hello, world!");
+    }
+
+    @Inject(method = {"start()V", "jjjj"}, at = @At("HEAD"))
+    public void onStart2(final CallbackInfo callbackInfo) {
+        System.out.println("Hello, world!");
+    }
+
+    @Inject(method = "start", at = @At(value = "INVOKE", target = "LTestTarget;run()V"))
+    public void inject(final CallbackInfo callbackInfo) {
+        System.out.println("Hello from injection!");
+    }
+
+    @Inject(method = "start", at = {
+            @At("HEAD"),
+            @At(value = "INVOKE", target = "LTestTarget;getAge()I"),
+            @At(value = "INVOKE_ASSIGN", target = "LTestTarget;run()V")
+    })
+    public void injectMultiple(final CallbackInfo callbackInfo) {
+        System.out.println("Hello from injection!");
+    }
+
+    @Inject(method = "start", at = @At(value = "NEW", target = "TestTarget"))
+    public void injectNew(final CallbackInfo callbackInfo) {
+        System.out.println("Hello from new injection!");
     }
 
 }

@@ -26,6 +26,7 @@ import org.cadixdev.mercury.RewriteContext;
 import org.cadixdev.mercury.analysis.MercuryInheritanceProvider;
 import org.cadixdev.mercury.mixin.annotation.AccessorData;
 import org.cadixdev.mercury.mixin.annotation.AccessorName;
+import org.cadixdev.mercury.mixin.annotation.AtData;
 import org.cadixdev.mercury.mixin.annotation.InjectData;
 import org.cadixdev.mercury.mixin.annotation.MethodTarget;
 import org.cadixdev.mercury.mixin.annotation.MixinClass;
@@ -50,6 +51,7 @@ import org.eclipse.jdt.core.dom.StringLiteral;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class MixinRemapperVisitor extends ASTVisitor {
 
@@ -205,7 +207,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
                 final String[] method = new String[inject.getMethodTargets().length];
                 for (int j = 0; j < inject.getMethodTargets().length; j++) {
                     final MethodTarget targetMethod = inject.getMethodTargets()[j];
-                    String targetMethodName = targetMethod.getMethodName();
+                    final String targetMethodName = targetMethod.getMethodName();
                     String deobf = targetMethodName + targetMethod.getMethodDescriptor()
                             .map(MethodDescriptor::toString)
                             .orElse("");
@@ -215,8 +217,13 @@ public class MixinRemapperVisitor extends ASTVisitor {
                                 targetMethod.getMethodDescriptor()
                                         .map(d -> d.equals(mapping.getDescriptor()))
                                         .orElse(true)) {
-                            MethodSignature deobfuscatedSignature = mapping.getDeobfuscatedSignature();
-                            deobf = deobfuscatedSignature.getName() + deobfuscatedSignature.getDescriptor().toString();
+                            final MethodSignature deobfuscatedSignature = mapping.getDeobfuscatedSignature();
+                            if (targetMethod.getMethodDescriptor().isPresent()) {
+                                deobf = deobfuscatedSignature.getName() + deobfuscatedSignature.getDescriptor().toString();
+                            }
+                            else {
+                                deobf = deobfuscatedSignature.getName();
+                            }
                             break;
                         }
                     }
@@ -225,7 +232,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
                 }
 
                 final NormalAnnotation originalAnnotation = (NormalAnnotation) node.modifiers().get(i);
-
+                int atIndex = 0;
                 for (final Object raw : originalAnnotation.values()) {
                     final MemberValuePair pair = (MemberValuePair) raw;
 
@@ -244,12 +251,77 @@ public class MixinRemapperVisitor extends ASTVisitor {
                         }
                     }
 
-                    // todo: handle @At remapping
+                    // Remap @At
+                    if (Objects.equals("at", pair.getName().getIdentifier())) {
+                        // it could be a SingleMemberAnnotation here but we don't care about that case
+
+                        if (pair.getValue() instanceof ArrayInitializer) {
+                            // get the annotations in the array
+                            ArrayInitializer arrayInitializer = (ArrayInitializer) pair.getValue();
+                            for (Object expression : arrayInitializer.expressions()) {
+                                if (expression instanceof NormalAnnotation) {
+                                    NormalAnnotation atAnnotation = (NormalAnnotation) expression;
+                                    AtData atDatum = inject.getAtData()[atIndex];
+                                    remapAtAnnotation(ast, declaringClass, atAnnotation, atDatum);
+                                }
+                                atIndex++;
+                            }
+                        }
+
+                        if (pair.getValue() instanceof NormalAnnotation) {
+                            NormalAnnotation atAnnotation = (NormalAnnotation) pair.getValue();
+                            AtData atDatum = inject.getAtData()[atIndex];
+                            remapAtAnnotation(ast, declaringClass, atAnnotation, atDatum);
+                        }
+                    }
                 }
             }
         }
 
         return true;
+    }
+
+    private void remapAtAnnotation(final AST ast, final ITypeBinding declaringClass, final NormalAnnotation atAnnotation, final AtData atDatum) {
+        for (final Object atRaw : atAnnotation.values()) {
+            // this will always be a MemberValuePair
+            final MemberValuePair atRawPair = (MemberValuePair) atRaw;
+
+            // check for the target
+            if (Objects.equals("target", atRawPair.getName().getIdentifier())) {
+                // make sure everything is present
+                if (atDatum.getClassName().isPresent()) {
+                    final String className = atDatum.getClassName().get();
+                    final StringLiteral originalTarget = (StringLiteral) atRawPair.getValue();
+
+                    // get the class mapping of the class that owns the target we're remapping
+                    final ClassMapping<?, ?> atTargetMappings = this.mappings.computeClassMapping(className).orElse(null);
+                    if (atTargetMappings == null) continue;
+                    atTargetMappings.complete(this.inheritanceProvider, declaringClass);
+                    final String deobfTargetClass = atTargetMappings.getFullDeobfuscatedName().replace('.', '/');
+
+                    if (atDatum.getTarget().isPresent()) {
+                        // class name + method signature
+                        final MethodTarget atTarget = atDatum.getTarget().get();
+                        final Optional<MethodDescriptor> methodDescriptor = atTarget.getMethodDescriptor();
+                        // the method descriptor should always be present in an @At's target
+                        if (methodDescriptor.isPresent()) {
+                            final MethodMapping methodMapping = atTargetMappings.getMethodMapping(atTarget.getMethodName(), methodDescriptor.get().toString()).orElse(null);
+                            if (methodMapping == null) continue;
+
+                            // replace the original literal with class + method + method sig
+                            final MethodSignature deobfuscatedSignature = methodMapping.getDeobfuscatedSignature();
+                            final String deobfTargetSig = deobfuscatedSignature.getName() + deobfuscatedSignature.getDescriptor().toString();
+                            final String deobfTarget = "L" + deobfTargetClass + ";" + deobfTargetSig;
+                            replaceStringLiteral(ast, this.context, originalTarget, deobfTarget);
+                        }
+                    }
+                    else {
+                        // it's just the class name
+                        replaceStringLiteral(ast, this.context, originalTarget, deobfTargetClass);
+                    }
+                }
+            }
+        }
     }
 
     private void visit(final SimpleName node, final IBinding binding) {
