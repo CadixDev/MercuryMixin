@@ -6,20 +6,16 @@
 
 package org.cadixdev.mercury.mixin.test;
 
+import org.cadixdev.mercury.mixin.cleaner.MixinCleaner;
 import org.junit.jupiter.api.Test;
 
-public class MercuryMixinTests {
-
-    @Test
-    void testAccessors() throws Exception {
-        new TestGroup("accessor")
-                .register("TestTargetAccessor", "TestTargetAccessor")
-                .test();
-    }
+public class CleanerTests {
 
     @Test
     void testMixins() throws Exception {
-        new TestGroup("mixin")
+        new TestGroup("cleaner", (mercury, mappings) -> {
+            mercury.getProcessors().add(MixinCleaner.create());
+        })
                 .register("TestTargetMixin", "TestTargetMixin")
                 .test();
     }

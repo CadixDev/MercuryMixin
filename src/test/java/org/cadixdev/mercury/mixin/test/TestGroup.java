@@ -14,7 +14,6 @@ import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.lorenz.io.MappingFormats;
 import org.cadixdev.lorenz.io.MappingsReader;
 import org.cadixdev.mercury.Mercury;
-import org.cadixdev.mercury.mixin.MixinRemapper;
 import org.cadixdev.mercury.remapper.MercuryRemapper;
 
 import java.io.ByteArrayOutputStream;
@@ -32,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 public class TestGroup {
 
@@ -46,12 +46,14 @@ public class TestGroup {
 
     private final Map<String, String> expected = new HashMap<>();
     private final String name;
+    private final BiConsumer<Mercury, MappingSet> mercuryHandler;
     private final Path dir;
     private final Path mixin;
     private final MappingSet mappings;
 
-    public TestGroup(final String name) throws IOException {
+    public TestGroup(final String name, final BiConsumer<Mercury, MappingSet> mercury) throws IOException {
         this.name = name;
+        this.mercuryHandler = mercury;
 
         // Create temporary directory, as Mercury needs to operate on the actual file
         // system.
@@ -97,7 +99,7 @@ public class TestGroup {
 
         final Mercury mercury = new Mercury();
         mercury.getClassPath().add(this.mixin);
-        mercury.getProcessors().add(MixinRemapper.create(this.mappings));
+        this.mercuryHandler.accept(mercury, this.mappings);
         mercury.getProcessors().add(MercuryRemapper.create(this.mappings));
         mercury.rewrite(in, out);
 
