@@ -48,4 +48,18 @@ public abstract class TestTargetMixin {
         System.out.println("Hello, world!");
     }
 
+    @Inject(method = "start", at = @At(value = "INVOKE", target = "LTestTarget;run()V"))
+    public void inject(final CallbackInfo callbackInfo) {
+        System.out.println("Hello from injection!");
+    }
+
+    @Inject(method = "start", at = {
+            @At("HEAD"),
+            @At(value = "INVOKE", target = "LTestTarget;getAge()I"),
+            @At(value = "INVOKE_ASSIGN", target = "LTestTarget;run()V")
+    })
+    public void injectMultiple(final CallbackInfo callbackInfo) {
+        System.out.println("Hello from injection!");
+    }
+
 }

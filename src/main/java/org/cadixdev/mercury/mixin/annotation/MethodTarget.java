@@ -7,7 +7,6 @@
 package org.cadixdev.mercury.mixin.annotation;
 
 import org.cadixdev.bombe.type.MethodDescriptor;
-import org.cadixdev.bombe.type.signature.MethodSignature;
 
 import java.util.Optional;
 
@@ -45,6 +44,14 @@ public class MethodTarget {
 
     public Optional<MethodDescriptor> getMethodDescriptor() {
         return Optional.ofNullable(methodDescriptor);
+    }
+
+    @Override
+    public String toString() {
+        return "MethodTarget{" +
+                "methodName='" + methodName + '\'' +
+                ", methodDescriptor=" + methodDescriptor +
+                '}';
     }
 
 }
