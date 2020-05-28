@@ -1,8 +1,13 @@
-apply plugin: 'java'
-apply plugin: 'maven'
+apply plugin: 'java-library'
+apply plugin: 'maven-publish'
 
-sourceCompatibility = javaVersion
-targetCompatibility = javaVersion
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+
+    withJavadocJar()
+    withSourcesJar()
+}
 
 group = 'org.cadixdev'
 archivesBaseName = project.name.toLowerCase()
@@ -18,7 +23,7 @@ repositories {
 }
 
 dependencies {
-    compile "org.cadixdev:mercury:$mercuryVersion"
+    api "org.cadixdev:mercury:$mercuryVersion"
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.6.2'
 }
@@ -31,85 +36,70 @@ processResources {
     from 'LICENSE.txt'
 }
 
-task javadocJar(type: Jar, dependsOn: 'javadoc') {
-    from javadoc.destinationDir
-    classifier = 'javadoc'
-}
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = project.archivesBaseName
+            from components.java
 
-task sourcesJar(type: Jar, dependsOn: 'classes') {
-    from sourceSets.main.allSource
-    classifier = 'sources'
-}
+            pom {
+                name = project.name
+                description = project.description
+                packaging = 'jar'
+                url = project.url
+                inceptionYear = project.inceptionYear
 
-artifacts {
-    archives javadocJar
-    archives sourcesJar
+                scm {
+                    url = 'https://github.com/CadixDev/MercuryMixin'
+                    connection = 'scm:git:https://github.com/CadixDev/MercuryMixin.git'
+                    developerConnection = 'scm:git:git@github.com:CadixDev/MercuryMixin.git'
+                }
+
+                issueManagement {
+                    system = 'GitHub'
+                    url = 'https://github.com/CadixDev/MercuryMixin/issues'
+                }
+
+                licenses {
+                    license {
+                        name = 'Mozilla Public License 2.0'
+                        url = 'https://opensource.org/licenses/MPL-2.0'
+                        distribution = 'repo'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'jamierocks'
+                        name = 'Jamie Mansfield'
+                        email = 'jmansfield@cadixdev.org'
+                        url = 'https://www.jamiemansfield.me/'
+                        timezone = 'Europe/London'
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        if (project.hasProperty('ossrhUsername') && project.hasProperty('ossrhPassword')) {
+            maven {
+                url = !version.endsWith('-SNAPSHOT') ?
+                        'https://oss.sonatype.org/service/local/staging/deploy/maven2/' :
+                        'https://oss.sonatype.org/content/repositories/snapshots/'
+
+                credentials {
+                    username = ossrhUsername
+                    password = ossrhPassword
+                }
+            }
+        }
+    }
 }
 
 if (project.hasProperty('ossrhUsername') && project.hasProperty('ossrhPassword')) {
     apply plugin: 'signing'
     signing {
-        required { !version.endsWith('-SNAPSHOT') && gradle.taskGraph.hasTask(tasks.uploadArchives) }
-        sign configurations.archives
-    }
-}
-
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            // Maven Central
-            if (project.hasProperty('ossrhUsername') && project.hasProperty('ossrhPassword')) {
-                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-
-                repository(url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
-                    authentication(userName: ossrhUsername, password: ossrhPassword)
-                }
-
-                snapshotRepository(url: 'https://oss.sonatype.org/content/repositories/snapshots/') {
-                    authentication(userName: ossrhUsername, password: ossrhPassword)
-                }
-            }
-
-            pom {
-                artifactId = project.archivesBaseName
-
-                project {
-                    name = project.name
-                    description = project.description
-                    packaging = 'jar'
-                    url = project.url
-                    inceptionYear = project.inceptionYear
-
-                    scm {
-                        url = 'https://github.com/CadixDev/MercuryMixin'
-                        connection = 'scm:git:https://github.com/CadixDev/MercuryMixin.git'
-                        developerConnection = 'scm:git:git@github.com:CadixDev/MercuryMixin.git'
-                    }
-
-                    issueManagement {
-                        system = 'GitHub'
-                        url = 'https://github.com/CadixDev/MercuryMixin/issues'
-                    }
-
-                    licenses {
-                        license {
-                            name = 'Mozilla Public License 2.0'
-                            url = 'https://opensource.org/licenses/MPL-2.0'
-                            distribution = 'repo'
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id = 'jamierocks'
-                            name = 'Jamie Mansfield'
-                            email = 'jmansfield@cadixdev.org'
-                            url = 'https://www.jamiemansfield.me/'
-                            timezone = 'Europe/London'
-                        }
-                    }
-                }
-            }
-        }
+        required { !version.endsWith('-SNAPSHOT') && gradle.taskGraph.hasTask(tasks.publish) }
+        sign publishing.publications.mavenJava
     }
 }

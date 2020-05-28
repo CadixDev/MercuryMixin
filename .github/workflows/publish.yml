@@ -21,7 +21,7 @@ jobs:
         run: ./gradlew build
 
       - name: Publish to Sonatype
-        run: ./gradlew uploadArchives
+        run: ./gradlew publish
         env:
           ORG_GRADLE_PROJECT_ossrhUsername: ${{ secrets.ORG_GRADLE_PROJECT_ossrhUsername }}
           ORG_GRADLE_PROJECT_ossrhPassword: ${{ secrets.ORG_GRADLE_PROJECT_ossrhPassword }}
