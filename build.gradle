@@ -1,5 +1,9 @@
-apply plugin: 'java-library'
-apply plugin: 'maven-publish'
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+
+    id 'net.minecrell.licenser' version '0.4.1'
+}
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
@@ -30,6 +34,12 @@ dependencies {
 
 test {
     useJUnitPlatform()
+}
+
+license {
+    header = project.file('HEADER.txt')
+
+    exclude 'org/cadixdev/mercury/mixin/annotation/AccessorName.java'
 }
 
 processResources {
