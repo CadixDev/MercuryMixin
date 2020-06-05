@@ -69,6 +69,8 @@ public class MixinRemapperVisitor extends ASTVisitor {
         if (!binding.isField()) return;
 
         final ITypeBinding declaringClass = binding.getDeclaringClass();
+        if (declaringClass == null) return;
+
         final MixinClass mixin = MixinClass.fetch(declaringClass, this.mappings);
         if (mixin == null) return;
 
