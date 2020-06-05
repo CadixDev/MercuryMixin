@@ -36,8 +36,10 @@ import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.Annotation;
 import org.eclipse.jdt.core.dom.ArrayInitializer;
+import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.IAnnotationBinding;
 import org.eclipse.jdt.core.dom.IBinding;
+import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
@@ -47,6 +49,7 @@ import org.eclipse.jdt.core.dom.NormalAnnotation;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SingleMemberAnnotation;
 import org.eclipse.jdt.core.dom.StringLiteral;
+import org.eclipse.jdt.core.dom.TypeDeclaration;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,6 +68,58 @@ public class MixinRemapperVisitor extends ASTVisitor {
         this.inheritanceProvider = MercuryInheritanceProvider.get(context.getMercury());
     }
 
+    private void remapPrivateMixinTarget(final AST ast, final TypeDeclaration typeDeclaration, final ITypeBinding binding) {
+        for (final Object rawModifier : typeDeclaration.modifiers()) {
+            final IExtendedModifier modifier = (IExtendedModifier) rawModifier;
+            if (!modifier.isAnnotation()) return;
+            final Annotation rawAnnot = (Annotation) modifier;
+
+            if (rawAnnot.isNormalAnnotation()) {
+                final NormalAnnotation annot = (NormalAnnotation) rawAnnot;
+
+                for (final Object raw : annot.values()) {
+                    final MemberValuePair pair = (MemberValuePair) raw;
+
+                    if (Objects.equals("targets", pair.getName().getIdentifier())) {
+                        final Expression targets = pair.getValue();
+
+                        if (targets instanceof StringLiteral) {
+                            final StringLiteral target = (StringLiteral) targets;
+                            this.remapPrivateMixinTargetLiteral(ast, target);
+                        }
+                        else if (targets instanceof ArrayInitializer) {
+                            final ArrayInitializer target = (ArrayInitializer) targets;
+
+                            for (final Object expression : target.expressions()) {
+                                if (expression instanceof StringLiteral) {
+                                    this.remapPrivateMixinTargetLiteral(ast, (StringLiteral) expression);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void remapPrivateMixinTargetLiteral(final AST ast, final StringLiteral literal) {
+        final String className = literal.getLiteralValue();
+        final boolean binaryFormat = className.contains("/");
+        if (className.isEmpty()) return;
+
+        ClassMapping<?, ?> classMapping = this.mappings.getTopLevelClassMapping(className).orElse(null);
+        if (classMapping == null) {
+            classMapping = this.mappings.getClassMapping(className).orElse(null);
+        }
+
+        if (classMapping != null) {
+            final String remappedClassName = classMapping.getFullDeobfuscatedName();
+            replaceStringLiteral(ast, this.context, literal, binaryFormat ?
+                    remappedClassName :
+                    remappedClassName.replace('/', '.'));
+        }
+    }
+
     void remapField(final SimpleName node, final IVariableBinding binding) {
         if (!binding.isField()) return;
 
@@ -75,7 +130,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
         if (mixin == null) return;
 
         // todo: support multiple targets properly
-        final ClassMapping<?, ?> target = this.mappings.computeClassMapping(mixin.getTargets()[0].getBinaryName()).orElse(null);
+        final ClassMapping<?, ?> target = this.mappings.computeClassMapping(mixin.getTargetBinaryName()).orElse(null);
         if (target == null) return;
 
         for (final IAnnotationBinding annotation : binding.getAnnotations()) {
@@ -110,8 +165,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
         if (mixin == null) return true;
 
         // todo: support multiple targets properly
-        final ITypeBinding targetClass = mixin.getTargets()[0];
-        final ClassMapping<?, ?> target = this.mappings.computeClassMapping(targetClass.getBinaryName()).orElse(null);
+        final ClassMapping<?, ?> target = this.mappings.computeClassMapping(mixin.getTargetBinaryName()).orElse(null);
         if (target == null) return true;
         target.complete(this.inheritanceProvider, declaringClass);
 
@@ -341,6 +395,12 @@ public class MixinRemapperVisitor extends ASTVisitor {
             visit(node, binding);
         }
         return false;
+    }
+
+    @Override
+    public boolean visit(final TypeDeclaration node) {
+        this.remapPrivateMixinTarget(node.getAST(), node, node.resolveBinding());
+        return true;
     }
 
     private static void replaceStringLiteral(final AST ast, final RewriteContext context, final StringLiteral original, final String replacement) {

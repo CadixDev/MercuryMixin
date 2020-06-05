@@ -40,6 +40,7 @@ public class TestGroup {
     static {
         final Set<String> commonSources = new HashSet<>();
         commonSources.add("hj");
+        commonSources.add("obf/OutInner");
 
         COMMON_SOURCES = Collections.unmodifiableSet(commonSources);
     }

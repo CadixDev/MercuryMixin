@@ -25,6 +25,10 @@ public class StandardTests {
         new TestGroup("mixin", (mercury, mappings) -> {
             mercury.getProcessors().add(MixinRemapper.create(mappings));
         })
+                .register("OtherOuterMixin", "OtherOuterMixin")
+                .register("OutInner_1Mixin", "OutInner_1Mixin")
+                .register("OutInner_2Mixin", "OutInner_2Mixin")
+                .register("OutInnerMixin", "OutInnerMixin")
                 .register("TestTargetMixin", "TestTargetMixin")
                 .test();
     }
