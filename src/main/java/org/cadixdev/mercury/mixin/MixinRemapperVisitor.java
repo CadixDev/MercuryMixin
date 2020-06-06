@@ -167,7 +167,10 @@ public class MixinRemapperVisitor extends ASTVisitor {
         // todo: support multiple targets properly
         final ClassMapping<?, ?> target = this.mappings.computeClassMapping(mixin.getTargetBinaryName()).orElse(null);
         if (target == null) return true;
-        target.complete(this.inheritanceProvider, declaringClass);
+
+        for (final ITypeBinding mixinTarget : mixin.getTargets()) {
+            target.complete(this.inheritanceProvider, mixinTarget);
+        }
 
         for (int i = 0; i < binding.getAnnotations().length; i++) {
             final IAnnotationBinding annotation = binding.getAnnotations()[i];
@@ -353,7 +356,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
                     // get the class mapping of the class that owns the target we're remapping
                     final ClassMapping<?, ?> atTargetMappings = this.mappings.computeClassMapping(className).orElse(null);
                     if (atTargetMappings == null) continue;
-                    atTargetMappings.complete(this.inheritanceProvider, declaringClass);
+
                     final String deobfTargetClass = atTargetMappings.getFullDeobfuscatedName();
 
                     if (atDatum.getTarget().isPresent()) {
