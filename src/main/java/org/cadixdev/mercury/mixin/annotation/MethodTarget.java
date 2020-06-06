@@ -14,6 +14,7 @@ import java.util.Optional;
  * Method target can either be a method name or a method signature
  *
  * @author Jadon Fowler
+ * @since 0.1.0
  */
 public class MethodTarget {
 
@@ -31,7 +32,7 @@ public class MethodTarget {
     }
 
     public static MethodTarget of(final String target) {
-        int index = target.indexOf('(');
+        final int index = target.indexOf('(');
         if (index >= 0) {
             return new MethodTarget(target.substring(0, index), MethodDescriptor.of(target.substring(index)));
         }

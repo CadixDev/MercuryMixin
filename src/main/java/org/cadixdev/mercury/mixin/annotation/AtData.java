@@ -16,6 +16,7 @@ import java.util.Optional;
  * A container for data held in the {@code @At} annotation.
  *
  * @author Jadon Fowler
+ * @since 0.1.0
  */
 public class AtData {
 
@@ -32,7 +33,7 @@ public class AtData {
             else if (Objects.equals("target", pair.getName())) {
                 final String combined = (String) pair.getValue();
 
-                int semiIndex = combined.indexOf(';');
+                final int semiIndex = combined.indexOf(';');
                 if (semiIndex >= 0) {
                     className = combined.substring(1, semiIndex);
                     target = MethodTarget.of(combined.substring(semiIndex + 1));
