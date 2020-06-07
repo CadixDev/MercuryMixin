@@ -104,8 +104,8 @@ public class MixinRemapperVisitor extends ASTVisitor {
 
     private void remapPrivateMixinTargetLiteral(final AST ast, final StringLiteral literal) {
         final String className = literal.getLiteralValue();
-        final boolean binaryFormat = className.contains("/");
         if (className.isEmpty()) return;
+        final boolean binaryFormat = className.contains("/");
 
         ClassMapping<?, ?> classMapping = this.mappings.getTopLevelClassMapping(className).orElse(null);
         if (classMapping == null) {
@@ -312,21 +312,22 @@ public class MixinRemapperVisitor extends ASTVisitor {
                         // it could be a SingleMemberAnnotation here but we don't care about that case
 
                         if (pair.getValue() instanceof ArrayInitializer) {
-                            // get the annotations in the array
-                            ArrayInitializer arrayInitializer = (ArrayInitializer) pair.getValue();
-                            for (Object expression : arrayInitializer.expressions()) {
+                            final ArrayInitializer value = (ArrayInitializer) pair.getValue();
+
+                            for (final Object expression : value.expressions()) {
                                 if (expression instanceof NormalAnnotation) {
-                                    NormalAnnotation atAnnotation = (NormalAnnotation) expression;
-                                    AtData atDatum = inject.getAtData()[atIndex];
+                                    final NormalAnnotation atAnnotation = (NormalAnnotation) expression;
+
+                                    final AtData atDatum = inject.getAtData()[atIndex];
                                     remapAtAnnotation(ast, declaringClass, atAnnotation, atDatum);
                                 }
                                 atIndex++;
                             }
                         }
+                        else if (pair.getValue() instanceof NormalAnnotation) {
+                            final NormalAnnotation atAnnotation = (NormalAnnotation) pair.getValue();
 
-                        if (pair.getValue() instanceof NormalAnnotation) {
-                            NormalAnnotation atAnnotation = (NormalAnnotation) pair.getValue();
-                            AtData atDatum = inject.getAtData()[atIndex];
+                            final AtData atDatum = inject.getAtData()[atIndex];
                             remapAtAnnotation(ast, declaringClass, atAnnotation, atDatum);
                         }
                     }
@@ -353,7 +354,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
                     final ClassMapping<?, ?> atTargetMappings = this.mappings.computeClassMapping(className).orElse(null);
                     if (atTargetMappings == null) continue;
                     atTargetMappings.complete(this.inheritanceProvider, declaringClass);
-                    final String deobfTargetClass = atTargetMappings.getFullDeobfuscatedName().replace('.', '/');
+                    final String deobfTargetClass = atTargetMappings.getFullDeobfuscatedName();
 
                     if (atDatum.getTarget().isPresent()) {
                         // class name + method signature
@@ -383,7 +384,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
     private void visit(final SimpleName node, final IBinding binding) {
         switch (binding.getKind()) {
             case IBinding.VARIABLE:
-                remapField(node, ((IVariableBinding) binding).getVariableDeclaration());
+                this.remapField(node, ((IVariableBinding) binding).getVariableDeclaration());
                 break;
         }
     }
@@ -392,7 +393,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
     public final boolean visit(final SimpleName node) {
         final IBinding binding = node.resolveBinding();
         if (binding != null) {
-            visit(node, binding);
+            this.visit(node, binding);
         }
         return false;
     }
