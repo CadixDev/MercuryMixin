@@ -43,8 +43,9 @@ public class MixinClass {
                     if (Objects.equals("value", pair.getName())) {
                         targetsTemp = (Object[]) pair.getValue();
                     }
-                    if (Objects.equals("targets", pair.getName())) {
-                        Object[] privateTargetObjects = (Object[]) pair.getValue();
+                    else if (Objects.equals("targets", pair.getName())) {
+                        final Object[] privateTargetObjects = (Object[]) pair.getValue();
+
                         privateTargets = new String[privateTargetObjects.length];
                         for (int i = 0; i < privateTargetObjects.length; i++) {
                             privateTargets[i] = (String) privateTargetObjects[i];
@@ -53,13 +54,13 @@ public class MixinClass {
                 }
             }
         }
+        if (!isMixinClass) return null;
 
         final ITypeBinding[] targets = new ITypeBinding[targetsTemp.length];
         for (int i = 0; i < targetsTemp.length; i++) {
             targets[i] = (ITypeBinding) targetsTemp[i];
         }
 
-        if (!isMixinClass) return null;
         return new MixinClass(
                 declaringClass, mappings,
                 targets, privateTargets
@@ -103,24 +104,27 @@ public class MixinClass {
     }
 
     /**
-     * Gets the Mixin target class' binary name
-     *
-     * @return The Mixin target class' binary name
-     */
-    public String getTargetBinaryName() {
-        if (this.targets.length > 0) {
-            return this.targets[0].getBinaryName();
-        }
-        return this.privateTargets[0].replace('.','/');
-    }
-
-    /**
      * Gets the <em>private</em> targets of the mixin.
      *
      * @return The private targets
      */
     public String[] getPrivateTargets() {
         return this.privateTargets;
+    }
+
+    /**
+     * Gets the <em>binary names</em> of all the mixin's targets, both
+     * public and private.
+     *
+     * @return The targets
+     */
+    public String[] getTargetNames() {
+        final String[] targets = new String[this.targets.length + this.privateTargets.length];
+        for (int i = 0; i < this.targets.length; i++) {
+            targets[i] = this.targets[i].getBinaryName();
+        }
+        System.arraycopy(this.privateTargets, 0, targets, this.targets.length, this.privateTargets.length);
+        return targets;
     }
 
     /**
