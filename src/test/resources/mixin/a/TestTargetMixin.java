@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(hj.class)
@@ -65,6 +66,12 @@ public abstract class TestTargetMixin {
     @Inject(method = "hhj", at = @At(value = "NEW", target = "hj"))
     public void injectNew(final CallbackInfo callbackInfo) {
         System.out.println("Hello from new injection!");
+    }
+
+    @Redirect(method = "hhj", at = @At(value = "INVOKE", target = "Lhj;julp()I"))
+    public int redirectJulp(hj instance) {
+        System.out.println("Redirecting getAge");
+        return 9;
     }
 
 }

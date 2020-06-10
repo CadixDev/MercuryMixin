@@ -23,6 +23,7 @@ public final class MixinConstants {
 
     // .injection
     public static final String INJECT_CLASS = INJECTION_PACKAGE + ".Inject";
+    public static final String REDIRECT_CLASS = INJECTION_PACKAGE + ".Redirect";
     public static final String AT_CLASS = INJECTION_PACKAGE + ".At";
 
     private MixinConstants() {

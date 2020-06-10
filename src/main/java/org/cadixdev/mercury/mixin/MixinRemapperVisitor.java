@@ -9,6 +9,7 @@ package org.cadixdev.mercury.mixin;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.ACCESSOR_CLASS;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.INJECT_CLASS;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.OVERWRITE_CLASS;
+import static org.cadixdev.mercury.mixin.util.MixinConstants.REDIRECT_CLASS;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.SHADOW_CLASS;
 import static org.cadixdev.mercury.util.BombeBindings.convertType;
 
@@ -257,8 +258,8 @@ public class MixinRemapperVisitor extends ASTVisitor {
                 }
             }
 
-            // @Inject
-            if (Objects.equals(INJECT_CLASS, annotationType)) {
+            // @Inject and @Redirect
+            if (Objects.equals(INJECT_CLASS, annotationType) || Objects.equals(REDIRECT_CLASS, annotationType)) {
                 final InjectData inject = InjectData.from(annotation);
 
                 // Find target method(s?)

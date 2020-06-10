@@ -35,11 +35,19 @@ public class InjectData {
                 }
             }
             else if (Objects.equals("at", pair.getName())) {
-                final Object[] raw = (Object[]) pair.getValue();
+                final Object value = pair.getValue();
+                if (value instanceof Object[]) {
+                    // Injects can have an array of @At
+                    final Object[] raw = (Object[]) value;
 
-                atData = new AtData[raw.length];
-                for (int i = 0; i < raw.length; i++) {
-                    atData[i] = AtData.from((IAnnotationBinding) raw[i]);
+                    atData = new AtData[raw.length];
+                    for (int i = 0; i < raw.length; i++) {
+                        atData[i] = AtData.from((IAnnotationBinding) raw[i]);
+                    }
+                }
+                else if (value instanceof IAnnotationBinding) {
+                    // Redirects are only allowed one @At
+                    atData = new AtData[]{AtData.from((IAnnotationBinding) value)};
                 }
             }
         }
