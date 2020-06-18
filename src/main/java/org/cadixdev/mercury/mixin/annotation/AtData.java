@@ -24,7 +24,7 @@ public class AtData {
     public static AtData from(final IAnnotationBinding binding) {
         String injectionPoint = null;
         String className = null;
-        MethodTarget target = null;
+        InjectTarget target = null;
 
         for (final IMemberValuePairBinding pair : binding.getDeclaredMemberValuePairs()) {
             if (Objects.equals("value", pair.getName())) {
@@ -36,7 +36,7 @@ public class AtData {
                 final int semiIndex = combined.indexOf(';');
                 if (semiIndex >= 0) {
                     className = combined.substring(1, semiIndex);
-                    target = MethodTarget.of(combined.substring(semiIndex + 1));
+                    target = InjectTarget.of(combined.substring(semiIndex + 1));
                 }
                 else {
                     // it's just the class name, probably a NEW
@@ -50,9 +50,9 @@ public class AtData {
 
     private final String injectionPoint;
     private final String className;
-    private final MethodTarget target;
+    private final InjectTarget target;
 
-    public AtData(final String injectionPoint, final String className, final MethodTarget target) {
+    public AtData(final String injectionPoint, final String className, final InjectTarget target) {
         this.injectionPoint = injectionPoint;
         this.className = className;
         this.target = target;
@@ -66,7 +66,7 @@ public class AtData {
         return Optional.ofNullable(this.className);
     }
 
-    public Optional<MethodTarget> getTarget() {
+    public Optional<InjectTarget> getTarget() {
         return Optional.ofNullable(this.target);
     }
 
