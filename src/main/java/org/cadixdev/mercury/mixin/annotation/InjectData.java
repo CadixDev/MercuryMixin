@@ -22,16 +22,16 @@ public class InjectData {
 
     // @Inject(method={"example"}, at=@At(...))
     public static InjectData from(final IAnnotationBinding binding) {
-        MethodTarget[] methodTargets = {};
+        InjectTarget[] injectTargets = {};
         AtData[] atData = {};
 
         for (final IMemberValuePairBinding pair : binding.getDeclaredMemberValuePairs()) {
             if (Objects.equals("method", pair.getName())) {
                 final Object[] raw = (Object[]) pair.getValue();
 
-                methodTargets = new MethodTarget[raw.length];
+                injectTargets = new InjectTarget[raw.length];
                 for (int i = 0; i < raw.length; i++) {
-                    methodTargets[i] = MethodTarget.of((String) raw[i]);
+                    injectTargets[i] = InjectTarget.of((String) raw[i]);
                 }
             }
             else if (Objects.equals("at", pair.getName())) {
@@ -52,19 +52,19 @@ public class InjectData {
             }
         }
 
-        return new InjectData(methodTargets, atData);
+        return new InjectData(injectTargets, atData);
     }
 
-    private final MethodTarget[] methodTargets;
+    private final InjectTarget[] injectTargets;
     private final AtData[] atData;
 
-    public InjectData(final MethodTarget[] methodTargets, final AtData[] atData) {
-        this.methodTargets = methodTargets;
+    public InjectData(final InjectTarget[] injectTargets, final AtData[] atData) {
+        this.injectTargets = injectTargets;
         this.atData = atData;
     }
 
-    public MethodTarget[] getMethodTargets() {
-        return this.methodTargets;
+    public InjectTarget[] getInjectTargets() {
+        return this.injectTargets;
     }
 
     public AtData[] getAtData() {
@@ -74,7 +74,7 @@ public class InjectData {
     @Override
     public String toString() {
         return "InjectData{" +
-                "methodTargets=" + Arrays.toString(this.methodTargets) +
+                "methodTargets=" + Arrays.toString(this.injectTargets) +
                 ", atData=" + Arrays.toString(this.atData) +
                 '}';
     }
