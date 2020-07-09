@@ -10,6 +10,8 @@ import static org.cadixdev.mercury.mixin.annotation.AccessorType.FIELD_GETTER;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.ACCESSOR_CLASS;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.INJECT_CLASS;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.INVOKER_CLASS;
+import static org.cadixdev.mercury.mixin.util.MixinConstants.MODIFY_CONSTANT_CLASS;
+import static org.cadixdev.mercury.mixin.util.MixinConstants.MODIFY_VARIABLE_CLASS;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.OVERWRITE_CLASS;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.REDIRECT_CLASS;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.SHADOW_CLASS;
@@ -18,11 +20,7 @@ import static org.cadixdev.mercury.util.BombeBindings.convertType;
 import org.cadixdev.bombe.analysis.InheritanceProvider;
 import org.cadixdev.bombe.type.FieldType;
 import org.cadixdev.bombe.type.MethodDescriptor;
-<<<<<<< HEAD
-=======
 import org.cadixdev.bombe.type.Type;
-import org.cadixdev.bombe.type.VoidType;
->>>>>>> 3747b22... Remap field targets in At annotations
 import org.cadixdev.bombe.type.signature.FieldSignature;
 import org.cadixdev.bombe.type.signature.MethodSignature;
 import org.cadixdev.lorenz.MappingSet;
@@ -284,8 +282,11 @@ public class MixinRemapperVisitor extends ASTVisitor {
                 }
             }
 
-            // @Inject and @Redirect
-            if (Objects.equals(INJECT_CLASS, annotationType) || Objects.equals(REDIRECT_CLASS, annotationType)) {
+            // @Inject, @Redirect, @ModifyConstant, & @ModifyVariable
+            if (Objects.equals(INJECT_CLASS, annotationType)
+                    || Objects.equals(REDIRECT_CLASS, annotationType)
+                    || Objects.equals(MODIFY_CONSTANT_CLASS, annotationType)
+                    || Objects.equals(MODIFY_VARIABLE_CLASS, annotationType)) {
                 final InjectData inject = InjectData.from(annotation);
 
                 // Find target method(s?)
@@ -430,7 +431,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
                             final String deobfTarget = "L" + deobfTargetClass + ";" + deobfTargetSig;
                             replaceStringLiteral(ast, this.context, originalTarget, deobfTarget);
                         } else if (fieldType.isPresent()) {
-                            final FieldMapping fieldMapping = atTargetMappings.getFieldMapping(atTarget.getTargetName()).orElse(null);
+                            final FieldMapping fieldMapping = atTargetMappings.computeFieldMapping(FieldSignature.of(atTarget.getTargetName(), fieldType.get().toString())).orElse(null);
                             if (fieldMapping == null) continue;
 
                             final String deobfTargetSig = fieldMapping.getDeobfuscatedName() + ":" + fieldType.get();
