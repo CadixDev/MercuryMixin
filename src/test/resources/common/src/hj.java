@@ -30,4 +30,7 @@ public class hj {
         gyhu();
     }
 
+    private void ghy(final int year) {
+    }
+
 }

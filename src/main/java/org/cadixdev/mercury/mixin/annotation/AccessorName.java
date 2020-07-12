@@ -25,9 +25,11 @@
 
 package org.cadixdev.mercury.mixin.annotation;
 
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Accessor Name struct.
@@ -80,8 +82,10 @@ public final class AccessorName {
     /**
      * Pattern for matching accessor names (for inflector)
      */
-    // todo: support METHOD_PROXY and OBJECT_FACTORY too
-    private static final Pattern PATTERN = Pattern.compile("^(get|is|set)(([A-Z])(.*?))(_\\$md.*)?$");
+    private static final Pattern PATTERN = Pattern.compile("^(" + Arrays.stream(AccessorType.values())
+            .map(AccessorType::getPrefixes)
+            .flatMap(Arrays::stream)
+            .collect(Collectors.joining("|")) + ")(([A-Z])(.*?))(_\\$md.*)?$");
 
     /**
      * Name of the accessor method

@@ -6,8 +6,10 @@
 
 package org.cadixdev.mercury.mixin;
 
+import static org.cadixdev.mercury.mixin.annotation.AccessorType.FIELD_GETTER;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.ACCESSOR_CLASS;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.INJECT_CLASS;
+import static org.cadixdev.mercury.mixin.util.MixinConstants.INVOKER_CLASS;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.OVERWRITE_CLASS;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.REDIRECT_CLASS;
 import static org.cadixdev.mercury.mixin.util.MixinConstants.SHADOW_CLASS;
@@ -16,7 +18,6 @@ import static org.cadixdev.mercury.util.BombeBindings.convertType;
 import org.cadixdev.bombe.analysis.InheritanceProvider;
 import org.cadixdev.bombe.type.FieldType;
 import org.cadixdev.bombe.type.MethodDescriptor;
-import org.cadixdev.bombe.type.VoidType;
 import org.cadixdev.bombe.type.signature.FieldSignature;
 import org.cadixdev.bombe.type.signature.MethodSignature;
 import org.cadixdev.lorenz.MappingSet;
@@ -27,6 +28,7 @@ import org.cadixdev.mercury.RewriteContext;
 import org.cadixdev.mercury.analysis.MercuryInheritanceProvider;
 import org.cadixdev.mercury.mixin.annotation.AccessorData;
 import org.cadixdev.mercury.mixin.annotation.AccessorName;
+import org.cadixdev.mercury.mixin.annotation.AccessorType;
 import org.cadixdev.mercury.mixin.annotation.AtData;
 import org.cadixdev.mercury.mixin.annotation.InjectData;
 import org.cadixdev.mercury.mixin.annotation.MethodTarget;
@@ -204,58 +206,75 @@ public class MixinRemapperVisitor extends ASTVisitor {
                 mixin.copyMethodMapping(target, signature, s -> s);
             }
 
-            // @Accessor
-            if (Objects.equals(ACCESSOR_CLASS, annotationType)) {
+            // @Accessor and @Invoker
+            if (Objects.equals(ACCESSOR_CLASS, annotationType) || Objects.equals(INVOKER_CLASS, annotationType)) {
                 final AccessorName name = AccessorName.of(binding.getName());
                 final AccessorData accessor = AccessorData.from(annotation);
                 final MethodSignature mixinSignature = BombeBindings.convertSignature(binding);
-
-                final boolean isGetter = mixinSignature.getDescriptor().getParamTypes().size() == 0 &&
-                        !Objects.equals(VoidType.INSTANCE, mixinSignature.getDescriptor().getReturnType());
-                final boolean isSetter = mixinSignature.getDescriptor().getParamTypes().size() == 1 &&
-                        Objects.equals(VoidType.INSTANCE, mixinSignature.getDescriptor().getReturnType());
-
-                // Inflect target from method name, if not set in annotation
-                final boolean inflect = accessor.getTarget().isEmpty();
-                final String targetName = inflect ? name.getName() : accessor.getTarget();
-                final FieldSignature targetSignature = new FieldSignature(targetName, isGetter ?
-                        // For getters, use the return type
-                        (FieldType) mixinSignature.getDescriptor().getReturnType() :
-                        // For setters, use the first argument in the method
-                        mixinSignature.getDescriptor().getParamTypes().get(0)
+                final AccessorType type = AccessorType.get(
+                        Objects.equals(INVOKER_CLASS, annotationType),
+                        binding, mixinSignature, accessor
                 );
 
-                // Get mapping of target field
-                final FieldMapping targetField = target.computeFieldMapping(targetSignature).orElse(null);
-                if (targetField == null) continue;
+                // Inflect target from target name, if not set in annotation
+                final boolean inflect = accessor.getTarget().isEmpty();
+                final String targetName = inflect ? name.getName() : accessor.getTarget();
 
-                // Inflect target name from name of method
-                if (inflect) {
-                    mixin.copyMethodMapping(target, mixinSignature, targetSignature, name::prefix);
-                }
-                else {
-                    final Annotation rawAnnotation = (Annotation) node.modifiers().get(i);
+                switch (type) {
+                    // @Accessor
+                    case FIELD_GETTER:
+                    case FIELD_SETTER: {
+                        final FieldSignature targetSignature = new FieldSignature(targetName, type == FIELD_GETTER ?
+                                // For getters, use the return type
+                                (FieldType) mixinSignature.getDescriptor().getReturnType() :
+                                // For setters, use the first argument in the method
+                                mixinSignature.getDescriptor().getParamTypes().get(0)
+                        );
 
-                    if (rawAnnotation.isNormalAnnotation()) {
-                        final NormalAnnotation annotationNode = (NormalAnnotation) rawAnnotation;
+                        // Get mapping of target field
+                        final FieldMapping targetField = target.computeFieldMapping(targetSignature).orElse(null);
+                        if (targetField == null) continue;
 
-                        for (final Object raw : annotationNode.values()) {
-                            final MemberValuePair pair = (MemberValuePair) raw;
-
-                            // Remap the method pair
-                            if (Objects.equals("value", pair.getName().getIdentifier())) {
-                                final StringLiteral original = (StringLiteral) pair.getValue();
-                                replaceStringLiteral(ast, this.context, original, targetField.getDeobfuscatedName());
-                            }
+                        // Inflect target name from name of method
+                        if (inflect) {
+                            mixin.copyMethodMapping(target, mixinSignature, targetSignature, name::prefix);
                         }
+                        else {
+                            final Annotation rawAnnotation = (Annotation) node.modifiers().get(i);
+                            replaceValueInAnnotation(ast, this.context, rawAnnotation, targetField.getDeobfuscatedName());
+                        }
+                        break;
                     }
-                    else if (rawAnnotation.isSingleMemberAnnotation()) {
-                        final SingleMemberAnnotation annotationNode = (SingleMemberAnnotation) rawAnnotation;
-                        final StringLiteral original = (StringLiteral) annotationNode.getValue();
-                        replaceStringLiteral(ast, this.context, original, targetField.getDeobfuscatedName());
+
+                    // @Invoker
+                    case METHOD_PROXY: {
+                        final MethodSignature targetSignature = new MethodSignature(targetName, mixinSignature.getDescriptor());
+
+                        // Get mapping of target field
+                        final MethodMapping targetMethod = target.getMethodMapping(targetSignature).orElse(null);
+                        if (targetMethod == null) continue;
+
+                        // Inflect target name from name of method
+                        if (inflect) {
+                            mixin.copyMethodMapping(target, mixinSignature, targetSignature, name::prefix);
+                        }
+                        else {
+                            final Annotation rawAnnotation = (Annotation) node.modifiers().get(i);
+                            replaceValueInAnnotation(ast, this.context, rawAnnotation, targetMethod.getDeobfuscatedName());
+                        }
+                        break;
                     }
-                    else {
-                        throw new RuntimeException("Unexpected annotation: " + rawAnnotation.getClass().getName());
+                    case OBJECT_FACTORY: {
+                        // @Invoker.value will always be either <init> or the target class name
+                        if (!Objects.equals("<init>", accessor.getTarget())) {
+                            // Remap target class name
+                            final ClassMapping<?, ?> targetClass = this.mappings.computeClassMapping(accessor.getTarget()).orElse(null);
+                            if (targetClass == null) continue;
+
+                            final Annotation rawAnnotation = (Annotation) node.modifiers().get(i);
+                            replaceValueInAnnotation(ast, this.context, rawAnnotation, targetClass.getFullDeobfuscatedName());
+                        }
+                        break;
                     }
                 }
             }
@@ -414,6 +433,30 @@ public class MixinRemapperVisitor extends ASTVisitor {
         final StringLiteral replacementLiteral = ast.newStringLiteral();
         replacementLiteral.setLiteralValue(replacement);
         context.createASTRewrite().replace(original, replacementLiteral, null);
+    }
+
+    private static void replaceValueInAnnotation(final AST ast, final RewriteContext context, final Annotation rawAnnotation, final String replacement) {
+        if (rawAnnotation.isNormalAnnotation()) {
+            final NormalAnnotation annotationNode = (NormalAnnotation) rawAnnotation;
+
+            for (final Object raw : annotationNode.values()) {
+                final MemberValuePair pair = (MemberValuePair) raw;
+
+                // Remap the method pair
+                if (Objects.equals("value", pair.getName().getIdentifier())) {
+                    final StringLiteral original = (StringLiteral) pair.getValue();
+                    replaceStringLiteral(ast, context, original, replacement);
+                }
+            }
+        }
+        else if (rawAnnotation.isSingleMemberAnnotation()) {
+            final SingleMemberAnnotation annotationNode = (SingleMemberAnnotation) rawAnnotation;
+            final StringLiteral original = (StringLiteral) annotationNode.getValue();
+            replaceStringLiteral(ast, context, original, replacement);
+        }
+        else {
+            throw new RuntimeException("Unexpected annotation: " + rawAnnotation.getClass().getName());
+        }
     }
 
     private static FieldSignature convertSignature(final String name, final ITypeBinding type) {

@@ -6,6 +6,7 @@
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
+import org.spongepowered.asm.mixin.gen.Invoker;
 
 @Mixin(hj.class)
 public interface TestTargetAccessor {
@@ -18,5 +19,13 @@ public interface TestTargetAccessor {
 
     @Accessor("thhh")
     public String getTest();
+
+    @Invoker
+    public void callGhy(final int year);
+
+    @Invoker("hj")
+    static hj createTestTarget(final String test) {
+        return null;
+    }
 
 }

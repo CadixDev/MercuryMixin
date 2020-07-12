@@ -20,6 +20,7 @@ public final class MixinConstants {
 
     // .gen
     public static final String ACCESSOR_CLASS = GEN_PACKAGE + ".Accessor";
+    public static final String INVOKER_CLASS = GEN_PACKAGE + ".Invoker";
 
     // .injection
     public static final String INJECT_CLASS = INJECTION_PACKAGE + ".Inject";

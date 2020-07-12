@@ -6,6 +6,7 @@ hj TestTarget
 	julp ()I getAge
 	gyhu ()V run
 	hhj ()V start
+	ghy (I)V setYear
 obf/OutInner real/OutInner
 obf/OutInner$1 real/Outer
 obf/OutInner$2 real/OutInner$1
