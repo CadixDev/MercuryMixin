@@ -6,19 +6,14 @@
 
 package org.cadixdev.mercury.mixin.annotation;
 
-import static org.cadixdev.mercury.mixin.util.MixinConstants.MIXIN_CLASS;
-
 import org.cadixdev.bombe.type.signature.FieldSignature;
 import org.cadixdev.bombe.type.signature.MethodSignature;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.lorenz.model.ClassMapping;
 import org.cadixdev.lorenz.model.FieldMapping;
 import org.cadixdev.lorenz.model.MethodMapping;
-import org.eclipse.jdt.core.dom.IAnnotationBinding;
-import org.eclipse.jdt.core.dom.IMemberValuePairBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 
-import java.util.Objects;
 import java.util.function.Function;
 
 /**
@@ -28,49 +23,21 @@ import java.util.function.Function;
  * @author Jamie Mansfield
  * @since 0.1.0
  */
-public class MixinClass {
+public class MixinClass extends MixinData {
 
     public static MixinClass fetch(final ITypeBinding declaringClass, final MappingSet mappings) {
-        boolean isMixinClass = false;
-        Object[] targetsTemp = {};
-        String[] privateTargets = {};
-
-        for (final IAnnotationBinding annotation : declaringClass.getAnnotations()) {
-            // @Mixin(value = { *.class }, targets = { "*" })
-            if (Objects.equals(MIXIN_CLASS, annotation.getAnnotationType().getBinaryName())) {
-                isMixinClass = true;
-                for (final IMemberValuePairBinding pair : annotation.getDeclaredMemberValuePairs()) {
-                    if (Objects.equals("value", pair.getName())) {
-                        targetsTemp = (Object[]) pair.getValue();
-                    }
-                    else if (Objects.equals("targets", pair.getName())) {
-                        final Object[] privateTargetObjects = (Object[]) pair.getValue();
-
-                        privateTargets = new String[privateTargetObjects.length];
-                        for (int i = 0; i < privateTargetObjects.length; i++) {
-                            privateTargets[i] = (String) privateTargetObjects[i];
-                        }
-                    }
-                }
-            }
-        }
-        if (!isMixinClass) return null;
-
-        final ITypeBinding[] targets = new ITypeBinding[targetsTemp.length];
-        for (int i = 0; i < targetsTemp.length; i++) {
-            targets[i] = (ITypeBinding) targetsTemp[i];
-        }
+        final MixinData mixinData = MixinData.fetch(declaringClass);
+        if (mixinData == null) return null;
 
         return new MixinClass(
                 declaringClass, mappings,
-                targets, privateTargets
+                mixinData.getTargets(), mixinData.getPrivateTargets()
         );
     }
 
     private final ITypeBinding binding;
     private final MappingSet mappings;
-    private final ITypeBinding[] targets;
-    private final String[] privateTargets;
+
     private ClassMapping<?, ?> mixinMapping;
 
     public MixinClass(
@@ -79,10 +46,9 @@ public class MixinClass {
             // @Mixin(value = { *.class }, targets = { "*" })
             final ITypeBinding[] targets, final String[] privateTargets
     ) {
+        super(targets, privateTargets);
         this.binding = binding;
         this.mappings = mappings;
-        this.targets = targets;
-        this.privateTargets = privateTargets;
     }
 
     /**
@@ -92,24 +58,6 @@ public class MixinClass {
      */
     public ITypeBinding getBinding() {
         return this.binding;
-    }
-
-    /**
-     * Gets the <em>public</em> targets of the mixin.
-     *
-     * @return The public targets
-     */
-    public ITypeBinding[] getTargets() {
-        return this.targets;
-    }
-
-    /**
-     * Gets the <em>private</em> targets of the mixin.
-     *
-     * @return The private targets
-     */
-    public String[] getPrivateTargets() {
-        return this.privateTargets;
     }
 
     /**

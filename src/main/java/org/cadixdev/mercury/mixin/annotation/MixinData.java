@@ -34,38 +34,53 @@ public class MixinData {
 
     // @Mixin(value = {klass.class}, targets = {"private"})
     public static MixinData from(final IAnnotationBinding binding) {
-        Object[] targetsTemp = {};
+        ITypeBinding[] targets = {};
         String[] privateTargets = {};
 
         for (final IMemberValuePairBinding pair : binding.getDeclaredMemberValuePairs()) {
             if (Objects.equals("value", pair.getName())) {
-                targetsTemp = (Object[]) pair.getValue();
+                final Object[] targetsTemp = (Object[]) pair.getValue();
+
+                targets = new ITypeBinding[targetsTemp.length];
+                for (int i = 0; i < targetsTemp.length; i++) {
+                    targets[i] = (ITypeBinding) targetsTemp[i];
+                }
+
             }
             if (Objects.equals("targets", pair.getName())) {
-                privateTargets = (String[]) pair.getValue();
+                final Object[] privateTargetsTemp = (Object[]) pair.getValue();
+
+                privateTargets = new String[privateTargetsTemp.length];
+                for (int i = 0; i < privateTargetsTemp.length; i++) {
+                    privateTargets[i] = (String) privateTargetsTemp[i];
+                }
             }
         }
-
-        final ITypeBinding[] targets = new ITypeBinding[targetsTemp.length];
-        for (int i = 0; i < targetsTemp.length; i++) {
-            targets[i] = (ITypeBinding) targetsTemp[i];
-        }
-
         return new MixinData(targets, privateTargets);
     }
 
-    private final ITypeBinding[] targets;
-    private final String[] privateTargets;
+    protected final ITypeBinding[] targets;
+    protected final String[] privateTargets;
 
     public MixinData(final ITypeBinding[] targets, final String[] privateTargets) {
         this.targets = targets;
         this.privateTargets = privateTargets;
     }
 
+    /**
+     * Gets the <em>public</em> targets of the mixin.
+     *
+     * @return The public targets
+     */
     public ITypeBinding[] getTargets() {
         return this.targets;
     }
 
+    /**
+     * Gets the <em>private</em> targets of the mixin.
+     *
+     * @return The private targets
+     */
     public String[] getPrivateTargets() {
         return this.privateTargets;
     }
