@@ -49,7 +49,7 @@ public class FinalVisitor extends ASTVisitor {
 
             final ITypeBinding declaringClass = binding.getDeclaringClass();
             final MixinData mixin = MixinData.fetch(declaringClass);
-            if (mixin == null) continue;
+            if (mixin == null || mixin.getTargets().length == 0) continue;
             final ITypeBinding targetClass = mixin.getTargets()[0];
 
             int shadowIndex = -1;
