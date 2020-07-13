@@ -10,7 +10,10 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyConstant;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -72,6 +75,17 @@ public abstract class TestTargetMixin {
     public int redirectJulp(TestTarget instance) {
         System.out.println("Redirecting getAge");
         return 9;
+    }
+
+    @ModifyVariable(method = "getConstant", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+    public boolean modifyVariableX(boolean a) {
+        System.out.println("Modifying variable a in getConstant")
+        return !a;
+    }
+
+    @ModifyConstant(method = "getConstant", constant = @Constant(intValue = 12, ordinal = 0))
+    public int changeConstant(int value) {
+        return value + 1;
     }
 
 }
