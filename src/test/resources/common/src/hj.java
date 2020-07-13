@@ -33,4 +33,12 @@ public class hj {
     private void ghy(final int year) {
     }
 
+    public int x(boolean a) {
+        if (a) {
+            return 12;
+        } else {
+            return 13;
+        }
+    }
+
 }
