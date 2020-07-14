@@ -49,6 +49,7 @@ import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
+import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.MemberValuePair;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.NormalAnnotation;
@@ -120,7 +121,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
 
         if (classMapping != null) {
             final String remappedClassName = classMapping.getFullDeobfuscatedName();
-            replaceStringLiteral(ast, this.context, literal, binaryFormat ?
+            replaceExpression(ast, this.context, literal, binaryFormat ?
                     remappedClassName :
                     remappedClassName.replace('/', '.'));
         }
@@ -305,15 +306,14 @@ public class MixinRemapperVisitor extends ASTVisitor {
 
                     // Remap the method pair
                     if (Objects.equals("method", pair.getName().getIdentifier())) {
-                        if (pair.getValue() instanceof StringLiteral) {
-                            final StringLiteral original = (StringLiteral) pair.getValue();
-                            replaceStringLiteral(ast, this.context, original, injectTargets[0]);
+                        if (pair.getValue() instanceof StringLiteral || pair.getValue() instanceof InfixExpression) {
+                            replaceExpression(ast, this.context, pair.getValue(), injectTargets[0]);
                         }
                         else {
                             final ArrayInitializer array = (ArrayInitializer) pair.getValue();
                             for (int j = 0; j < array.expressions().size(); j++) {
                                 final StringLiteral original = (StringLiteral) array.expressions().get(j);
-                                replaceStringLiteral(ast, this.context, original, injectTargets[j]);
+                                replaceExpression(ast, this.context, original, injectTargets[j]);
                             }
                         }
                     }
@@ -402,7 +402,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
                 // make sure everything is present
                 if (atDatum.getClassName().isPresent()) {
                     final String className = atDatum.getClassName().get();
-                    final StringLiteral originalTarget = (StringLiteral) atRawPair.getValue();
+                    final Expression originalTarget = atRawPair.getValue();
 
                     // get the class mapping of the class that owns the target we're remapping
                     final ClassMapping<?, ?> atTargetMappings = this.mappings.computeClassMapping(className).orElse(null);
@@ -425,7 +425,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
                             final MethodSignature deobfuscatedSignature = methodMapping.getDeobfuscatedSignature();
                             final String deobfTargetSig = deobfuscatedSignature.getName() + deobfuscatedSignature.getDescriptor().toString();
                             final String deobfTarget = "L" + deobfTargetClass + ";" + deobfTargetSig;
-                            replaceStringLiteral(ast, this.context, originalTarget, deobfTarget);
+                            replaceExpression(ast, this.context, originalTarget, deobfTarget);
                         }
                         else if (fieldType.isPresent()) {
                             final FieldMapping fieldMapping = atTargetMappings.computeFieldMapping(FieldSignature.of(atTarget.getTargetName(), fieldType.get().toString())).orElse(null);
@@ -433,12 +433,12 @@ public class MixinRemapperVisitor extends ASTVisitor {
 
                             final String deobfTargetSig = fieldMapping.getDeobfuscatedName() + ":" + fieldType.get();
                             final String deobfTarget = "L" + deobfTargetClass + ";" + deobfTargetSig;
-                            replaceStringLiteral(ast, this.context, originalTarget, deobfTarget);
+                            replaceExpression(ast, this.context, originalTarget, deobfTarget);
                         }
                     }
                     else {
                         // it's just the class name
-                        replaceStringLiteral(ast, this.context, originalTarget, deobfTargetClass);
+                        replaceExpression(ast, this.context, originalTarget, deobfTargetClass);
                     }
                 }
             }
@@ -468,7 +468,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
         return true;
     }
 
-    private static void replaceStringLiteral(final AST ast, final RewriteContext context, final StringLiteral original, final String replacement) {
+    private static void replaceExpression(final AST ast, final RewriteContext context, final Expression original, final String replacement) {
         final StringLiteral replacementLiteral = ast.newStringLiteral();
         replacementLiteral.setLiteralValue(replacement);
         context.createASTRewrite().replace(original, replacementLiteral, null);
@@ -484,14 +484,14 @@ public class MixinRemapperVisitor extends ASTVisitor {
                 // Remap the method pair
                 if (Objects.equals("value", pair.getName().getIdentifier())) {
                     final StringLiteral original = (StringLiteral) pair.getValue();
-                    replaceStringLiteral(ast, context, original, replacement);
+                    replaceExpression(ast, context, original, replacement);
                 }
             }
         }
         else if (rawAnnotation.isSingleMemberAnnotation()) {
             final SingleMemberAnnotation annotationNode = (SingleMemberAnnotation) rawAnnotation;
             final StringLiteral original = (StringLiteral) annotationNode.getValue();
-            replaceStringLiteral(ast, context, original, replacement);
+            replaceExpression(ast, context, original, replacement);
         }
         else {
             throw new RuntimeException("Unexpected annotation: " + rawAnnotation.getClass().getName());
