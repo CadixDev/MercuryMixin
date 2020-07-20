@@ -39,6 +39,7 @@ public class TestGroup {
 
     static {
         final Set<String> commonSources = new HashSet<>();
+        commonSources.add("ExtendedTarget");
         commonSources.add("hj");
         commonSources.add("obf/OutInner");
 

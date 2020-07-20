@@ -33,4 +33,13 @@ public class StandardTests {
                 .test();
     }
 
+    @Test
+    void testInheritance() throws Exception {
+        new TestGroup("inheritance", (mercury, mappings) -> {
+            mercury.getProcessors().add(MixinRemapper.create(mappings));
+        })
+                .register("ExtendedTargetMixin", "ExtendedTargetMixin")
+                .test();
+    }
+
 }
