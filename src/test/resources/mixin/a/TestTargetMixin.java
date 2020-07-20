@@ -57,6 +57,11 @@ public abstract class TestTargetMixin {
         System.out.println("Hello from injection!");
     }
 
+    @Inject(method = "hhj", at = @At(value = "INVOKE", target = "Lhj;unknownMethod()V"))
+    public void injectIntoUnknownMethod(final CallbackInfo callbackInfo) {
+        System.out.println("Hello from injection part 2!");
+    }
+
     @Inject(method = "hhj", at = {
             @At("HEAD"),
             @At(value = "INVOKE", target = "Lhj;julp()I"),
