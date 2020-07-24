@@ -8,6 +8,7 @@ package org.cadixdev.mercury.mixin.annotation;
 
 import static org.cadixdev.mercury.mixin.util.MixinConstants.MIXIN_CLASS;
 
+import org.cadixdev.mercury.Mercury;
 import org.eclipse.jdt.core.dom.IAnnotationBinding;
 import org.eclipse.jdt.core.dom.IMemberValuePairBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
@@ -68,11 +69,32 @@ public class MixinData {
     }
 
     /**
+     * Gets <em>all</em> targets of the mixin,
+     * {@link Mercury#createTypeBinding(String) creating type bindings} for
+     * private targets.
+     *
+     * @param mercury The mercury instance
+     * @return The targets
+     */
+    public ITypeBinding[] getTargets(final Mercury mercury) {
+        final ITypeBinding[] targets = new ITypeBinding[this.targets.length + this.privateTargets.length];
+
+        System.arraycopy(this.targets, 0, targets, 0, this.targets.length);
+
+        for (int i = 0; i < this.privateTargets.length; i++) {
+            targets[this.targets.length + i] = mercury.createTypeBinding(this.privateTargets[i])
+                    .orElse(null);
+        }
+
+        return targets;
+    }
+
+    /**
      * Gets the <em>public</em> targets of the mixin.
      *
      * @return The public targets
      */
-    public ITypeBinding[] getTargets() {
+    public ITypeBinding[] getPublicTargets() {
         return this.targets;
     }
 

@@ -16,6 +16,7 @@ public class CleanerTests {
         new TestGroup("cleaner", (mercury, mappings) -> {
             mercury.getProcessors().add(MixinCleaner.create());
         })
+                .register("PrivateTestTargetMixin", "PrivateTestTargetMixin")
                 .register("TestTargetMixin", "TestTargetMixin")
                 .test();
     }

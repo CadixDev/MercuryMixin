@@ -173,9 +173,8 @@ public class MixinRemapperVisitor extends ASTVisitor {
         // todo: support multiple targets properly
         final ClassMapping<?, ?> target = this.mappings.getOrCreateClassMapping(mixin.getTargetNames()[0]);
 
-        // todo: handle private targets
         // todo: only complete the mixin we are targeting
-        for (final ITypeBinding mixinTarget : mixin.getTargets()) {
+        for (final ITypeBinding mixinTarget : mixin.getTargets(this.context.getMercury())) {
             target.complete(this.inheritanceProvider, mixinTarget);
         }
 

@@ -31,7 +31,7 @@ public class MixinClass extends MixinData {
 
         return new MixinClass(
                 declaringClass, mappings,
-                mixinData.getTargets(), mixinData.getPrivateTargets()
+                mixinData.getPublicTargets(), mixinData.getPrivateTargets()
         );
     }
 
