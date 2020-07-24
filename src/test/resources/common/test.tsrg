@@ -8,7 +8,11 @@ hj TestTarget
 	hhj ()V start
 	ghy (I)V setYear
 	x (Z)I getConstant
+
 obf/OutInner real/OutInner
 obf/OutInner$1 real/Outer
 obf/OutInner$2 real/OutInner$1
 obf/OtherOuter real/OutInner$2
+
+InterfaceTest InterfaceTest
+	ghj ()Ljava/lang/String; getName

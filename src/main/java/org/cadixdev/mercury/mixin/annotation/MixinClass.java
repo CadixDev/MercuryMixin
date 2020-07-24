@@ -14,6 +14,8 @@ import org.cadixdev.lorenz.model.FieldMapping;
 import org.cadixdev.lorenz.model.MethodMapping;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -29,14 +31,28 @@ public class MixinClass extends MixinData {
         final MixinData mixinData = MixinData.fetch(declaringClass);
         if (mixinData == null) return null;
 
+        final ImplementsData implementsData = ImplementsData.fetch(declaringClass);
+
+        final Map<String, ITypeBinding> implementsMap = new HashMap<>();
+        if (implementsData != null) {
+            for (final InterfaceData interfaceData : implementsData.getValue()) {
+                implementsMap.put(
+                        interfaceData.getPrefix().substring(0, interfaceData.getPrefix().length() - 1),
+                        interfaceData.getIface()
+                );
+            }
+        }
+
         return new MixinClass(
                 declaringClass, mappings,
-                mixinData.getPublicTargets(), mixinData.getPrivateTargets()
+                mixinData.getPublicTargets(), mixinData.getPrivateTargets(),
+                implementsMap
         );
     }
 
     private final ITypeBinding binding;
     private final MappingSet mappings;
+    private final Map<String, ITypeBinding> implementsData;
 
     private ClassMapping<?, ?> mixinMapping;
 
@@ -44,11 +60,14 @@ public class MixinClass extends MixinData {
             // General
             final ITypeBinding binding, final MappingSet mappings,
             // @Mixin(value = { *.class }, targets = { "*" })
-            final ITypeBinding[] targets, final String[] privateTargets
+            final ITypeBinding[] targets, final String[] privateTargets,
+            // @Implements(@Interface(iface=Example.class, prefix="example$"))
+            final Map<String, ITypeBinding> implementsData
     ) {
         super(targets, privateTargets);
         this.binding = binding;
         this.mappings = mappings;
+        this.implementsData = implementsData;
     }
 
     /**
@@ -73,6 +92,10 @@ public class MixinClass extends MixinData {
         }
         System.arraycopy(this.privateTargets, 0, targets, this.targets.length, this.privateTargets.length);
         return targets;
+    }
+
+    public Map<String, ITypeBinding> getImplementsData() {
+        return this.implementsData;
     }
 
     /**

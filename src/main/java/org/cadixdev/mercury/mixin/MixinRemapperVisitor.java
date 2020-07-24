@@ -170,6 +170,32 @@ public class MixinRemapperVisitor extends ASTVisitor {
         final MixinClass mixin = MixinClass.fetch(declaringClass, this.mappings);
         if (mixin == null) return true;
 
+        // @Implements
+        if (node.getName().getIdentifier().contains("$")) {
+            final String[] split = node.getName().getIdentifier().split("\\$");
+            final String prefix = split[0];
+            final String name = split[1];
+
+            // check we implement something
+            if (mixin.getImplementsData().containsKey(prefix)) {
+                final ITypeBinding iface = mixin.getImplementsData().get(prefix);
+                final ClassMapping<?, ?> target = this.mappings.getOrCreateClassMapping(iface.getBinaryName());
+
+                final MethodSignature targetSignature = convertSignature(name, binding);
+                final MethodSignature mixinSignature = BombeBindings.convertSignature(binding);
+
+                // Copy de-obfuscation mapping
+                mixin.copyMethodMapping(
+                        target,
+                        mixinSignature,
+                        targetSignature,
+                        deobfName -> prefix + "$" + deobfName
+                );
+
+                return true;
+            }
+        }
+
         // todo: support multiple targets properly
         final ClassMapping<?, ?> target = this.mappings.getOrCreateClassMapping(mixin.getTargetNames()[0]);
 

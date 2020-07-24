@@ -30,6 +30,7 @@ public class StandardTests {
                 .register("OutInner_1Mixin", "OutInner_1Mixin")
                 .register("OutInner_2Mixin", "OutInner_2Mixin")
                 .register("OutInnerMixin", "OutInnerMixin")
+                .register("TestImplementsMixin", "TestImplementsMixin")
                 .register("TestTargetMixin", "TestTargetMixin")
                 .test();
     }

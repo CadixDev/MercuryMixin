@@ -41,6 +41,7 @@ public class TestGroup {
         final Set<String> commonSources = new HashSet<>();
         commonSources.add("ExtendedTarget");
         commonSources.add("hj");
+        commonSources.add("InterfaceTest");
         commonSources.add("obf/OutInner");
 
         COMMON_SOURCES = Collections.unmodifiableSet(commonSources);
