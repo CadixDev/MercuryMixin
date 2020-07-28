@@ -73,7 +73,7 @@ public class InjectTarget {
         if (methodDescriptor != null) {
             full += methodDescriptor.toString();
         } else if (fieldType != null) {
-            full += fieldType.toString();
+            full += ":" + fieldType.toString();
         }
 
         return full;

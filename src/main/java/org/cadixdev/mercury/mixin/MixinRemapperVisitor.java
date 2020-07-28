@@ -387,9 +387,12 @@ public class MixinRemapperVisitor extends ASTVisitor {
                     }
 
                     final FieldSignature deobfuscatedSignature = mapping.getDeobfuscatedSignature();
-                    final String deobfuscatedFieldType = deobfuscatedSignature.getType()
+                    String deobfuscatedFieldType = deobfuscatedSignature.getType()
                             .map(FieldType::toString)
                             .orElse(null);
+                    if (deobfuscatedFieldType == null) {
+                        deobfuscatedFieldType = this.mappings.deobfuscate(fieldType).toString();
+                    }
 
                     return Optional.of(deobfuscatedFieldType != null ?
                             deobfuscatedSignature.getName() + ":" + deobfuscatedFieldType :
@@ -434,40 +437,11 @@ public class MixinRemapperVisitor extends ASTVisitor {
                     final String deobfTargetClass = atTargetMappings.getFullDeobfuscatedName();
 
                     if (atDatum.getTarget().isPresent()) {
-                        remapInjectTarget(atTargetMappings, atDatum.getTarget().get());
-                        // class name + method signature
                         final InjectTarget atTarget = atDatum.getTarget().get();
-                        final Optional<MethodDescriptor> methodDescriptor = atTarget.getMethodDescriptor();
-                        final Optional<Type> fieldType = atTarget.getFieldType();
-                        final String targetName = atTarget.getTargetName();
-                        // the method descriptor should always be present in an @At's target
-                        if (methodDescriptor.isPresent()) {
-                            final String methodDesc = methodDescriptor.get().toString();
-                            String deobfTargetSig = targetName + methodDesc;
-
-                            final MethodMapping methodMapping = atTargetMappings.getMethodMapping(targetName, methodDesc).orElse(null);
-                            if (methodMapping != null) {
-                                // replace the method if the mapping exists
-                                final MethodSignature deobfuscatedSignature = methodMapping.getDeobfuscatedSignature();
-                                deobfTargetSig = deobfuscatedSignature.getName() + deobfuscatedSignature.getDescriptor().toString();
-                            }
-
-                            // replace the original literal with class + method + method sig
-                            final String deobfTarget = "L" + deobfTargetClass + ";" + deobfTargetSig;
-                            replaceExpression(ast, this.context, originalTarget, deobfTarget);
-                        }
-                        else if (fieldType.isPresent()) {
-                            final String fieldDesc = fieldType.get().toString();
-                            String deobfTargetSig = targetName + ":" + fieldDesc;
-
-                            final FieldMapping fieldMapping = atTargetMappings.computeFieldMapping(FieldSignature.of(targetName, fieldDesc)).orElse(null);
-                            if (fieldMapping != null) {
-                                deobfTargetSig = fieldMapping.getDeobfuscatedName() + ":" + fieldType.get();
-                            }
-
-                            final String deobfTarget = "L" + deobfTargetClass + ";" + deobfTargetSig;
-                            replaceExpression(ast, this.context, originalTarget, deobfTarget);
-                        }
+                        final String newTarget = remapInjectTarget(atTargetMappings, atTarget)
+                                .orElse(atTarget.getFullTarget());
+                        String deobfTarget = "L" + deobfTargetClass + ";" + newTarget;
+                        replaceExpression(ast, this.context, originalTarget, deobfTarget);
                     }
                     else {
                         // it's just the class name
