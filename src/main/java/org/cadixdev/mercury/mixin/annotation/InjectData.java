@@ -24,6 +24,7 @@ public class InjectData {
     public static InjectData from(final IAnnotationBinding binding) {
         InjectTarget[] injectTargets = {};
         AtData[] atData = {};
+        SliceData[] sliceData = {};
 
         for (final IMemberValuePairBinding pair : binding.getDeclaredMemberValuePairs()) {
             if (Objects.equals("method", pair.getName())) {
@@ -36,6 +37,7 @@ public class InjectData {
             }
             else if (Objects.equals("at", pair.getName())) {
                 final Object value = pair.getValue();
+
                 if (value instanceof Object[]) {
                     // Injects can have an array of @At
                     final Object[] raw = (Object[]) value;
@@ -50,17 +52,36 @@ public class InjectData {
                     atData = new AtData[]{AtData.from((IAnnotationBinding) value)};
                 }
             }
+            else if (Objects.equals("slice", pair.getName())) {
+                final Object value = pair.getValue();
+
+                if (value instanceof Object[]) {
+                    // Injects can have an array of @Slice
+                    final Object[] raw = (Object[]) value;
+
+                    sliceData = new SliceData[raw.length];
+                    for (int i = 0; i < raw.length; i++) {
+                        sliceData[i] = SliceData.from((IAnnotationBinding) raw[i]);
+                    }
+                }
+                else if (value instanceof IAnnotationBinding) {
+                    // Redirects are only allowed one @At
+                    sliceData = new SliceData[]{SliceData.from((IAnnotationBinding) value)};
+                }
+            }
         }
 
-        return new InjectData(injectTargets, atData);
+        return new InjectData(injectTargets, atData, sliceData);
     }
 
     private final InjectTarget[] injectTargets;
     private final AtData[] atData;
+    private final SliceData[] sliceData;
 
-    public InjectData(final InjectTarget[] injectTargets, final AtData[] atData) {
+    public InjectData(final InjectTarget[] injectTargets, final AtData[] atData, final SliceData[] sliceData) {
         this.injectTargets = injectTargets;
         this.atData = atData;
+        this.sliceData = sliceData;
     }
 
     public InjectTarget[] getInjectTargets() {
@@ -71,11 +92,16 @@ public class InjectData {
         return this.atData;
     }
 
+    public SliceData[] getSliceData() {
+        return this.sliceData;
+    }
+
     @Override
     public String toString() {
         return "InjectData{" +
                 "methodTargets=" + Arrays.toString(this.injectTargets) +
                 ", atData=" + Arrays.toString(this.atData) +
+                ", sliceData=" + Arrays.toString(this.sliceData) +
                 '}';
     }
 

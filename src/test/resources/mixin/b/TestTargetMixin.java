@@ -15,6 +15,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(TestTarget.class)
@@ -73,6 +74,15 @@ public abstract class TestTargetMixin {
 
     @Inject(method = "start", at = @At(value = "NEW", target = "TestTarget"))
     public void injectNew(final CallbackInfo callbackInfo) {
+        System.out.println("Hello from new injection!");
+    }
+
+    @Inject(method = "start",
+            at = @At(value = "INVOKE_ASSIGN", target = "LTestTarget;run()V"),
+            slice = @Slice(
+                    from = @At(value = "INVOKE", target = "LTestTarget;getAge()I")
+            ))
+    public void injectSlice(final CallbackInfo callbackInfo) {
         System.out.println("Hello from new injection!");
     }
 

@@ -37,6 +37,7 @@ import org.cadixdev.mercury.mixin.annotation.InjectData;
 import org.cadixdev.mercury.mixin.annotation.InjectTarget;
 import org.cadixdev.mercury.mixin.annotation.MixinClass;
 import org.cadixdev.mercury.mixin.annotation.ShadowData;
+import org.cadixdev.mercury.mixin.annotation.SliceData;
 import org.cadixdev.mercury.util.BombeBindings;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTVisitor;
@@ -324,6 +325,7 @@ public class MixinRemapperVisitor extends ASTVisitor {
 
                 final NormalAnnotation originalAnnotation = (NormalAnnotation) node.modifiers().get(i);
                 int atIndex = 0;
+                int sliceIndex = 0;
                 for (final Object raw : originalAnnotation.values()) {
                     final MemberValuePair pair = (MemberValuePair) raw;
 
@@ -363,6 +365,31 @@ public class MixinRemapperVisitor extends ASTVisitor {
 
                             final AtData atDatum = inject.getAtData()[atIndex];
                             remapAtAnnotation(ast, declaringClass, atAnnotation, atDatum);
+                        }
+                    }
+
+                    // Remap @Slice
+                    if (Objects.equals("slice", pair.getName().getIdentifier())) {
+                        // it could be a SingleMemberAnnotation here but we don't care about that case
+
+                        if (pair.getValue() instanceof ArrayInitializer) {
+                            final ArrayInitializer value = (ArrayInitializer) pair.getValue();
+
+                            for (final Object expression : value.expressions()) {
+                                if (expression instanceof NormalAnnotation) {
+                                    final NormalAnnotation atAnnotation = (NormalAnnotation) expression;
+
+                                    final SliceData sliceDatum = inject.getSliceData()[sliceIndex];
+                                    this.remapSliceAnnotation(ast, declaringClass, atAnnotation, sliceDatum);
+                                }
+                                sliceIndex++;
+                            }
+                        }
+                        else if (pair.getValue() instanceof NormalAnnotation) {
+                            final NormalAnnotation atAnnotation = (NormalAnnotation) pair.getValue();
+
+                            final SliceData sliceDatum = inject.getSliceData()[sliceIndex];
+                            this.remapSliceAnnotation(ast, declaringClass, atAnnotation, sliceDatum);
                         }
                     }
                 }
@@ -416,6 +443,21 @@ public class MixinRemapperVisitor extends ASTVisitor {
             }
         }
         return Optional.empty();
+    }
+
+    private void remapSliceAnnotation(final AST ast, final ITypeBinding declaringClass, final NormalAnnotation atAnnotation,
+                                      final SliceData sliceDatum) {
+        for (final Object raw : atAnnotation.values()) {
+            // this will always be a MemberValuePair
+            final MemberValuePair pairRaw = (MemberValuePair) raw;
+
+            if (Objects.equals("from", pairRaw.getName().getIdentifier())) {
+                this.remapAtAnnotation(ast, declaringClass, (NormalAnnotation) pairRaw.getValue(), sliceDatum.getFrom());
+            }
+            if (Objects.equals("to", pairRaw.getName().getIdentifier())) {
+                this.remapAtAnnotation(ast, declaringClass, (NormalAnnotation) pairRaw.getValue(), sliceDatum.getTo());
+            }
+        }
     }
 
     private void remapAtAnnotation(final AST ast, final ITypeBinding declaringClass, final NormalAnnotation atAnnotation, final AtData atDatum) {
