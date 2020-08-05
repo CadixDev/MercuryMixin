@@ -451,6 +451,9 @@ public class MixinRemapperVisitor extends ASTVisitor {
             // this will always be a MemberValuePair
             final MemberValuePair pairRaw = (MemberValuePair) raw;
 
+            // it could be a SingleMemberAnnotation here but we don't care about that case
+            if (!(pairRaw.getValue() instanceof NormalAnnotation)) continue;
+
             if (Objects.equals("from", pairRaw.getName().getIdentifier())) {
                 this.remapAtAnnotation(ast, declaringClass, (NormalAnnotation) pairRaw.getValue(), sliceDatum.getFrom());
             }

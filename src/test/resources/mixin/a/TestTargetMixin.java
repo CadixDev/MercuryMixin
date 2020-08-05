@@ -80,7 +80,8 @@ public abstract class TestTargetMixin {
     @Inject(method = "hhj",
             at = @At(value = "INVOKE_ASSIGN", target = "Lhj;gyhu()V"),
             slice = @Slice(
-                    from = @At(value = "INVOKE", target = "Lhj;julp()I")
+                    from = @At(value = "INVOKE", target = "Lhj;julp()I"),
+                    to = @At("TAIL")
             ))
     public void injectSlice(final CallbackInfo callbackInfo) {
         System.out.println("Hello from new injection!");
