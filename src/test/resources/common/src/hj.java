@@ -41,4 +41,12 @@ public class hj {
         }
     }
 
+    public hj fetch() {
+        return this;
+    }
+
+    public void combine() {
+        final hj fetched = this.fetch();
+    }
+
 }

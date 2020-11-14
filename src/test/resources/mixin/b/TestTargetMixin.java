@@ -93,6 +93,12 @@ public abstract class TestTargetMixin {
         return 9;
     }
 
+    @Redirect(method = "combine", at = @At(value = "INVOKE", target = "LTestTarget;fetch()LTestTarget;"))
+    public TestTarget redirectFetch(TestTarget instance) {
+        System.out.println("Redirecting fetch");
+        return instance;
+    }
+
     @ModifyVariable(method = "getConstant", at = @At("HEAD"), argsOnly = true, ordinal = 0)
     public boolean modifyVariableX(boolean a) {
         System.out.println("Modifying variable a in getConstant")
