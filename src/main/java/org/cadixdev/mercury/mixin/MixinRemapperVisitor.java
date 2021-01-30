@@ -328,11 +328,12 @@ public class MixinRemapperVisitor extends ASTVisitor {
                     final MemberValuePair pair = (MemberValuePair) raw;
 
                     // Remap the method pair
+                    // TODO: handle the case where we point towards a string constant?
                     if (Objects.equals("method", pair.getName().getIdentifier())) {
                         if (pair.getValue() instanceof StringLiteral || pair.getValue() instanceof InfixExpression) {
                             replaceExpression(ast, this.context, pair.getValue(), injectTargets[0]);
                         }
-                        else {
+                        else if (pair.getValue() instanceof ArrayInitializer) {
                             final ArrayInitializer array = (ArrayInitializer) pair.getValue();
                             for (int j = 0; j < array.expressions().size(); j++) {
                                 final StringLiteral original = (StringLiteral) array.expressions().get(j);
