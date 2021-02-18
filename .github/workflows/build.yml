@@ -2,8 +2,10 @@ name: Build
 
 # Only run for pull requests
 on:
+  push:
+    branches-ignore:
+      - 'master'
   pull_request:
-    branches: [ master ]
 
 jobs:
   build:
@@ -16,6 +18,9 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 8
+
+      - name: Verify Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v1
 
       - name: Build with Gradle
         run: ./gradlew build
